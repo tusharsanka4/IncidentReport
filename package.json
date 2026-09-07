@@ -1,0 +1,27 @@
+{
+  "name": "manifest-it",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+"scripts": {
+  "dev": "tsx watch services/api/src/index.ts",
+  "build": "tsc",
+  "start": "node dist/services/api/src/index.js"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tusharsanka4/IncidentReport.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tusharsanka4/IncidentReport/issues"
+  },
+  "homepage": "https://github.com/tusharsanka4/IncidentReport#readme",
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
