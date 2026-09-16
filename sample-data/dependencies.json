@@ -1,0 +1,107 @@
+[
+  {
+    "source": "cloudfront-cdn",
+    "target": "storefront-ui",
+    "type": "ROUTES_TO"
+  },
+  {
+    "source": "storefront-ui",
+    "target": "api-gateway",
+    "type": "CALLS"
+  },
+  {
+    "source": "api-gateway",
+    "target": "order-service",
+    "type": "ROUTES_TO"
+  },
+  {
+    "source": "api-gateway",
+    "target": "catalog-service",
+    "type": "ROUTES_TO"
+  },
+  {
+    "source": "api-gateway",
+    "target": "payment-service",
+    "type": "ROUTES_TO"
+  },
+  {
+    "source": "order-service",
+    "target": "postgres-orders",
+    "type": "WRITES_TO"
+  },
+  {
+    "source": "order-service",
+    "target": "redis-cache",
+    "type": "DEPENDS_ON"
+  },
+  {
+    "source": "order-service",
+    "target": "vault-prod-acme",
+    "type": "USES_SECRET"
+  },
+  {
+    "source": "order-service",
+    "target": "github-acme-mono",
+    "type": "BUILT_FROM"
+  },
+  {
+    "source": "order-service",
+    "target": "gh-actions-deploy",
+    "type": "DEPLOYED_BY"
+  },
+  {
+    "source": "catalog-service",
+    "target": "redis-cache",
+    "type": "DEPENDS_ON"
+  },
+  {
+    "source": "catalog-service",
+    "target": "vault-prod-acme",
+    "type": "USES_SECRET"
+  },
+  {
+    "source": "catalog-service",
+    "target": "github-acme-mono",
+    "type": "BUILT_FROM"
+  },
+  {
+    "source": "catalog-service",
+    "target": "gh-actions-deploy",
+    "type": "DEPLOYED_BY"
+  },
+  {
+    "source": "payment-service",
+    "target": "sqs-order-events",
+    "type": "CONSUMES_FROM"
+  },
+  {
+    "source": "payment-service",
+    "target": "vault-prod-acme",
+    "type": "USES_SECRET"
+  },
+  {
+    "source": "payment-service",
+    "target": "github-acme-mono",
+    "type": "BUILT_FROM"
+  },
+  {
+    "source": "payment-service",
+    "target": "gh-actions-deploy",
+    "type": "DEPLOYED_BY"
+  },
+  {
+    "source": "order-service",
+    "target": "amazon-eks",
+    "type": "HOSTED_ON"
+  },
+  {
+    "source": "catalog-service",
+    "target": "amazon-eks",
+    "type": "HOSTED_ON"
+  },
+  {
+    "source": "payment-service",
+    "target": "amazon-eks",
+    "type": "HOSTED_ON"
+  }
+]

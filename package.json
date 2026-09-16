@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
+  "scripts": {
   "dev": "tsx watch services/api/src/index.ts",
   "build": "tsc",
-  "start": "node dist/services/api/src/index.js"
+  "start": "node dist/services/api/src/index.js",
+  "seed": "tsx database/seeds/seed.ts"
 },
   "repository": {
     "type": "git",
@@ -21,7 +22,12 @@
   "homepage": "https://github.com/tusharsanka4/IncidentReport#readme",
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "pg": "^8.23.0"
   }
 }

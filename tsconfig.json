@@ -12,6 +12,7 @@
   },
   "include": [
     "services/**/*.ts",
+    "database/**/*.ts",
     "tests/**/*.ts"
   ],
   "exclude": [

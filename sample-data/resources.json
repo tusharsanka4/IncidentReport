@@ -1,0 +1,80 @@
+[
+  {
+    "id": "cloudfront-cdn",
+    "name": "cloudfront-cdn",
+    "type": "CDN",
+    "environment": "production"
+  },
+  {
+    "id": "storefront-ui",
+    "name": "storefront-ui",
+    "type": "APPLICATION",
+    "environment": "production"
+  },
+  {
+    "id": "api-gateway",
+    "name": "api-gateway",
+    "type": "SERVICE",
+    "environment": "production"
+  },
+  {
+    "id": "order-service",
+    "name": "order-service",
+    "type": "SERVICE",
+    "environment": "production"
+  },
+  {
+    "id": "catalog-service",
+    "name": "catalog-service",
+    "type": "SERVICE",
+    "environment": "production"
+  },
+  {
+    "id": "payment-service",
+    "name": "payment-service",
+    "type": "SERVICE",
+    "environment": "production"
+  },
+  {
+    "id": "postgres-orders",
+    "name": "postgres/orders",
+    "type": "DATABASE",
+    "environment": "production"
+  },
+  {
+    "id": "redis-cache",
+    "name": "redis-cache",
+    "type": "CACHE",
+    "environment": "production"
+  },
+  {
+    "id": "sqs-order-events",
+    "name": "sqs/order-events",
+    "type": "QUEUE",
+    "environment": "production"
+  },
+  {
+    "id": "vault-prod-acme",
+    "name": "vault/prod/acme/*",
+    "type": "SECRET",
+    "environment": "production"
+  },
+  {
+    "id": "github-acme-mono",
+    "name": "github/acme-mono",
+    "type": "REPOSITORY",
+    "environment": "production"
+  },
+  {
+    "id": "gh-actions-deploy",
+    "name": "gh-actions/deploy",
+    "type": "PIPELINE",
+    "environment": "production"
+  },
+  {
+    "id": "amazon-eks",
+    "name": "amazon-eks",
+    "type": "CLUSTER",
+    "environment": "production"
+  }
+]
