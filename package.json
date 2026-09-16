@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "tsx watch services/api/src/index.ts",
-  "build": "tsc",
-  "start": "node dist/services/api/src/index.js",
-  "seed": "tsx database/seeds/seed.ts"
-},
+    "dev": "tsx watch services/api/src/index.ts",
+    "build": "tsc",
+    "start": "node dist/services/api/src/index.js",
+    "seed": "tsx database/seeds/seed.ts"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tusharsanka4/IncidentReport.git"
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "dotenv": "^17.4.2",
+    "fastify": "^5.12.5",
     "pg": "^8.23.0"
   }
 }
