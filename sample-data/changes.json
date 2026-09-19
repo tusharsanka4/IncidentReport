@@ -1,0 +1,56 @@
+[
+  {
+    "change_id": "CHG-201",
+    "resource": "order-service",
+    "type": "deployment",
+    "description": "Deployed order-service version v2.4.1",
+    "version": "v2.4.1",
+    "environment": "production",
+    "deployed_at": "2026-08-04T08:05:00Z",
+    "source": "gh-actions/deploy",
+    "metadata": {
+      "previous_version": "v2.4.0",
+      "commit": "abc123"
+    }
+  },
+  {
+    "change_id": "CHG-202",
+    "resource": "redis-cache",
+    "type": "configuration",
+    "description": "Reduced Redis connection timeout",
+    "environment": "production",
+    "deployed_at": "2026-08-04T07:55:00Z",
+    "source": "manual",
+    "metadata": {
+      "previous_timeout_ms": 5000,
+      "new_timeout_ms": 1000
+    }
+  },
+  {
+    "change_id": "CHG-203",
+    "resource": "catalog-service",
+    "type": "deployment",
+    "description": "Deployed catalog-service version v1.9.0",
+    "version": "v1.9.0",
+    "environment": "production",
+    "deployed_at": "2026-08-04T06:30:00Z",
+    "source": "gh-actions/deploy",
+    "metadata": {
+      "previous_version": "v1.8.3",
+      "commit": "def456"
+    }
+  },
+  {
+    "change_id": "CHG-204",
+    "resource": "order-service",
+    "type": "deployment",
+    "description": "Deployed order-service to staging",
+    "version": "v2.5.0-rc1",
+    "environment": "staging",
+    "deployed_at": "2026-08-04T08:10:00Z",
+    "source": "gh-actions/deploy",
+    "metadata": {
+      "previous_version": "v2.4.1"
+    }
+  }
+]

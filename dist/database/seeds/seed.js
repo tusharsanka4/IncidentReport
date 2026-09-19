@@ -67,16 +67,57 @@ async function seedRelationships(client, relationships) {
         ]);
     }
 }
+async function seedChanges(client, changes) {
+    for (const change of changes) {
+        await client.query(`
+        INSERT INTO changes (
+          id,
+          resource_id,
+          change_type,
+          description,
+          version,
+          environment,
+          deployed_at,
+          source,
+          metadata
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id)
+        DO UPDATE SET
+          resource_id = EXCLUDED.resource_id,
+          change_type = EXCLUDED.change_type,
+          description = EXCLUDED.description,
+          version = EXCLUDED.version,
+          environment = EXCLUDED.environment,
+          deployed_at = EXCLUDED.deployed_at,
+          source = EXCLUDED.source,
+          metadata = EXCLUDED.metadata
+      `, [
+            change.change_id,
+            change.resource,
+            change.type,
+            change.description ?? null,
+            change.version ?? null,
+            change.environment,
+            change.deployed_at,
+            change.source ?? null,
+            change.metadata ?? {}
+        ]);
+    }
+}
 async function seedDatabase() {
     const client = await database.connect();
     try {
         const resources = await readJsonFile("sample-data/resources.json");
         const relationships = await readJsonFile("sample-data/dependencies.json");
+        const changes = await readJsonFile("sample-data/changes.json");
         await client.query("BEGIN");
         console.log(`Loading ${resources.length} resources...`);
         await seedResources(client, resources);
         console.log(`Loading ${relationships.length} relationships...`);
         await seedRelationships(client, relationships);
+        console.log(`Loading ${changes.length} changes...`);
+        await seedChanges(client, changes);
         await client.query("COMMIT");
         console.log("Database seeded successfully.");
     }

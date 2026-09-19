@@ -1,4 +1,7 @@
 import "dotenv/config";
+import type {
+  ChangeSeedInput
+} from "../../services/shared/src/change.types.js";
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -89,6 +92,51 @@ async function seedRelationships(
   }
 }
 
+async function seedChanges(
+  client: PoolClient,
+  changes: ChangeSeedInput[]
+): Promise<void> {
+  for (const change of changes) {
+    await client.query(
+      `
+        INSERT INTO changes (
+          id,
+          resource_id,
+          change_type,
+          description,
+          version,
+          environment,
+          deployed_at,
+          source,
+          metadata
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id)
+        DO UPDATE SET
+          resource_id = EXCLUDED.resource_id,
+          change_type = EXCLUDED.change_type,
+          description = EXCLUDED.description,
+          version = EXCLUDED.version,
+          environment = EXCLUDED.environment,
+          deployed_at = EXCLUDED.deployed_at,
+          source = EXCLUDED.source,
+          metadata = EXCLUDED.metadata
+      `,
+      [
+        change.change_id,
+        change.resource,
+        change.type,
+        change.description ?? null,
+        change.version ?? null,
+        change.environment,
+        change.deployed_at,
+        change.source ?? null,
+        change.metadata ?? {}
+      ]
+    );
+  }
+}
+
 async function seedDatabase(): Promise<void> {
   const client = await database.connect();
 
@@ -101,6 +149,10 @@ async function seedDatabase(): Promise<void> {
       "sample-data/dependencies.json"
     );
 
+    const changes = await readJsonFile<ChangeSeedInput[]>(
+      "sample-data/changes.json"
+    );
+
     await client.query("BEGIN");
 
     console.log(`Loading ${resources.length} resources...`);
@@ -108,6 +160,9 @@ async function seedDatabase(): Promise<void> {
 
     console.log(`Loading ${relationships.length} relationships...`);
     await seedRelationships(client, relationships);
+
+    console.log(`Loading ${changes.length} changes...`);
+    await seedChanges(client, changes);
 
     await client.query("COMMIT");
 
