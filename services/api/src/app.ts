@@ -2,6 +2,7 @@ import Fastify from "fastify";
 
 import { healthRoutes } from "./routes/health.routes.js";
 import { incidentRoutes } from "./routes/incidents.routes.js";
+import { candidateRoutes } from "./routes/candidates.routes.js";
 
 export function buildApplication() {
   const app = Fastify({
@@ -9,8 +10,10 @@ export function buildApplication() {
     requestIdHeader: "x-request-id"
   });
 
+
   app.register(healthRoutes);
   app.register(incidentRoutes);
+  app.register(candidateRoutes);
 
   app.setNotFoundHandler((request, reply) => {
     return reply.code(404).send({

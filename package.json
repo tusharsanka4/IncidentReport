@@ -7,7 +7,8 @@
     "dev": "tsx watch services/api/src/index.ts",
     "build": "tsc",
     "start": "node dist/services/api/src/index.js",
-    "seed": "tsx database/seeds/seed.ts"
+    "seed": "tsx database/seeds/seed.ts",
+    "test:ranking" : "tsx --test tests/unit/candidate-ranking.test.ts"
   },
   "repository": {
     "type": "git",

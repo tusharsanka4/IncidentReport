@@ -7,6 +7,7 @@ exports.buildApplication = buildApplication;
 const fastify_1 = __importDefault(require("fastify"));
 const health_routes_js_1 = require("./routes/health.routes.js");
 const incidents_routes_js_1 = require("./routes/incidents.routes.js");
+const candidates_routes_js_1 = require("./routes/candidates.routes.js");
 function buildApplication() {
     const app = (0, fastify_1.default)({
         logger: true,
@@ -14,6 +15,7 @@ function buildApplication() {
     });
     app.register(health_routes_js_1.healthRoutes);
     app.register(incidents_routes_js_1.incidentRoutes);
+    app.register(candidates_routes_js_1.candidateRoutes);
     app.setNotFoundHandler((request, reply) => {
         return reply.code(404).send({
             error: {
