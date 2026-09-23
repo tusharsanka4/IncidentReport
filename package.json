@@ -8,7 +8,9 @@
     "build": "tsc",
     "start": "node dist/services/api/src/index.js",
     "seed": "tsx database/seeds/seed.ts",
-    "test:ranking" : "tsx --test tests/unit/candidate-ranking.test.ts"
+    "test:ranking": "tsx --test tests/unit/candidate-ranking.test.ts",
+    "mcp:dev": "tsx services/mcp-server/src/index.ts",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector npx tsx services/mcp-server/src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -28,8 +30,10 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.5",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "zod": "^4.6.5"
   }
 }
