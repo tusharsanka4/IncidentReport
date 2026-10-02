@@ -22,11 +22,15 @@ export const RecommendedActionSchema = z.object({
 
   to_version: z.string().optional(),
 
-  execution: z.literal(
+  execution: z.enum([
     "HUMAN_APPROVAL_REQUIRED"
-  ),
+  ]),
 
-  requires_approval: z.literal(true)
+  requires_approval: z
+    .boolean()
+    .describe(
+      "Must always be true because remediation requires human approval"
+    )
 });
 
 export const AnalysisOutputSchema = z.object({

@@ -94,6 +94,10 @@ Rules:
         state.candidates
       );
 
+    /*
+     * The model may only select a change that
+     * was present in the ranked candidate list.
+     */
     if (
       analysis.probable_change_id !== null &&
       !candidateIds.has(
@@ -102,6 +106,28 @@ Rules:
     ) {
       throw new Error(
         "The model selected a change that was not provided"
+      );
+    }
+
+    /*
+     * The model must never recommend automatic
+     * execution. Every action requires approval.
+     */
+    if (
+      analysis.recommended_action.execution !==
+      "HUMAN_APPROVAL_REQUIRED"
+    ) {
+      throw new Error(
+        "The model produced an unsafe execution mode"
+      );
+    }
+
+    if (
+      analysis.recommended_action
+        .requires_approval !== true
+    ) {
+      throw new Error(
+        "The model produced a recommendation without human approval"
       );
     }
 

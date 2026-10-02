@@ -17,8 +17,12 @@ exports.RecommendedActionSchema = zod_1.z.object({
     resource: zod_1.z.string().min(1),
     from_version: zod_1.z.string().optional(),
     to_version: zod_1.z.string().optional(),
-    execution: zod_1.z.literal("HUMAN_APPROVAL_REQUIRED"),
-    requires_approval: zod_1.z.literal(true)
+    execution: zod_1.z.enum([
+        "HUMAN_APPROVAL_REQUIRED"
+    ]),
+    requires_approval: zod_1.z
+        .boolean()
+        .describe("Must always be true because remediation requires human approval")
 });
 exports.AnalysisOutputSchema = zod_1.z.object({
     probable_change_id: zod_1.z
