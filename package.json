@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:agent": "tsx --test tests/unit/agent.test.ts",
     "agent": "tsx services/agent/src/index.ts",
     "dev": "tsx watch services/api/src/index.ts",
     "build": "tsc",
