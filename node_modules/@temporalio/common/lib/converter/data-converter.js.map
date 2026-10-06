@@ -1,0 +1,1 @@
+{"version":3,"file":"data-converter.js","sourceRoot":"","sources":["../../src/converter/data-converter.ts"],"names":[],"mappings":";;;AAEA,2DAA8D;AAG9D,2DAA8D;AAiF9D;;;;GAIG;AACU,QAAA,uBAAuB,GAAqB,IAAI,2CAAuB,EAAE,CAAC;AAEvF;;GAEG;AACU,QAAA,oBAAoB,GAAwB;IACvD,gBAAgB,EAAE,2CAAuB;IACzC,gBAAgB,EAAE,+BAAuB;IACzC,aAAa,EAAE,EAAE;CAClB,CAAC"}

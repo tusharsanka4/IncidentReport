@@ -1,0 +1,521 @@
+import * as nexus from 'nexus-rpc';
+import Long from 'long';
+import type { temporal } from '@temporalio/proto';
+import type { ProtoFailure } from '../failure';
+import {
+  ActivityFailure,
+  ApplicationFailure,
+  CancelledFailure,
+  ChildWorkflowFailure,
+  decodeApplicationFailureCategory,
+  decodeRetryState,
+  decodeTimeoutType,
+  encodeApplicationFailureCategory,
+  encodeRetryState,
+  encodeTimeoutType,
+  FAILURE_SOURCE,
+  NexusOperationFailure,
+  ServerFailure,
+  TemporalFailure,
+  TerminatedFailure,
+  TimeoutFailure,
+} from '../failure';
+import { makeProtoEnumConverters } from '../internal-workflow';
+import { isError } from '../type-helpers';
+import { msOptionalToTs } from '../time';
+import { encode } from '../encoding';
+import type { PayloadConverter } from './payload-converter';
+import { arrayFromPayloads, fromPayloadsAtIndex, toPayloadsWithContext } from './payload-converter';
+import type { SerializationContext } from './serialization-context';
+
+// Can't import proto enums into the workflow sandbox, use this helper type and enum converter instead.
+const NexusHandlerErrorRetryBehavior = {
+  RETRYABLE: 'RETRYABLE',
+  NON_RETRYABLE: 'NON_RETRYABLE',
+} as const;
+type NexusHandlerErrorRetryBehavior =
+  (typeof NexusHandlerErrorRetryBehavior)[keyof typeof NexusHandlerErrorRetryBehavior];
+
+const [encodeNexusHandlerErrorRetryBehavior, decodeNexusHandlerErrorRetryBehavior] = makeProtoEnumConverters<
+  temporal.api.enums.v1.NexusHandlerErrorRetryBehavior,
+  typeof temporal.api.enums.v1.NexusHandlerErrorRetryBehavior,
+  keyof typeof temporal.api.enums.v1.NexusHandlerErrorRetryBehavior,
+  typeof NexusHandlerErrorRetryBehavior,
+  'NEXUS_HANDLER_ERROR_RETRY_BEHAVIOR_'
+>(
+  {
+    UNSPECIFIED: 0,
+    [NexusHandlerErrorRetryBehavior.RETRYABLE]: 1,
+    [NexusHandlerErrorRetryBehavior.NON_RETRYABLE]: 2,
+  } as const,
+  'NEXUS_HANDLER_ERROR_RETRY_BEHAVIOR_'
+);
+
+function combineRegExp(...regexps: RegExp[]): RegExp {
+  return new RegExp(regexps.map((x) => `(?:${x.source})`).join('|'));
+}
+
+/**
+ * Stack traces will be cutoff when on of these patterns is matched
+ */
+const CUTOFF_STACK_PATTERNS = combineRegExp(
+  /** Activity execution */
+  /\s+at (Activity\.)?execute \(.*[\\/]worker[\\/](?:src|lib)[\\/]activity\.[jt]s:\d+:\d+\)/,
+  /** Nexus execution */
+  /\s+at( async)? (NexusHandler\.)?invokeUserCode \(.*[\\/]worker[\\/](?:src|lib)[\\/]nexus[\\/]index\.[jt]s:\d+:\d+\)/,
+  /** Workflow activation (inbound handlers only) */
+  /\s+at( async)? (Activator\.)?(startWorkflow|queryWorkflow|signalWorkflow|update|validateUpdate)NextHandler \(.*\.[jt]s:\d+:\d+\)/,
+  /** Workflow run anything in context */
+  /\s+at (Script\.)?runInContext \(native|unknown|(?:(?:node:vm|vm\.js):\d+:\d+)\)/
+);
+
+/**
+ * Any stack trace frames that match any of those wil be dopped.
+ * The "null." prefix on some cases is to avoid https://github.com/nodejs/node/issues/42417
+ */
+const DROPPED_STACK_FRAMES_PATTERNS = combineRegExp(
+  /** Internal functions used to recursively chain interceptors */
+  /\s+at (null\.)?next \(.*[\\/]common[\\/](?:src|lib)[\\/]interceptors\.[jt]s:\d+:\d+\)/,
+  /** Internal functions used to recursively chain interceptors */
+  /\s+at (null\.)?executeNextHandler \(.*[\\/]worker[\\/](?:src|lib)[\\/]activity\.[jt]s:\d+:\d+\)/
+);
+
+/**
+ * Cuts out the framework part of a stack trace, leaving only user code entries
+ */
+export function cutoffStackTrace(stack?: string): string {
+  const lines = (stack ?? '').split(/\r?\n/);
+  const acc = Array<string>();
+  for (const line of lines) {
+    if (CUTOFF_STACK_PATTERNS.test(line)) break;
+    if (!DROPPED_STACK_FRAMES_PATTERNS.test(line)) acc.push(line);
+  }
+  return acc.join('\n');
+}
+
+/**
+ * A `FailureConverter` is responsible for converting from proto `Failure` instances to JS `Errors` and back.
+ *
+ * We recommended using the {@link DefaultFailureConverter} instead of customizing the default implementation in order
+ * to maintain cross-language Failure serialization compatibility.
+ */
+export interface FailureConverter {
+  /**
+   * Converts a caught error to a Failure proto message.
+   */
+  errorToFailure(err: unknown, payloadConverter: PayloadConverter, context?: SerializationContext): ProtoFailure;
+
+  /**
+   * Converts a Failure proto message to a JS Error object.
+   *
+   * The returned error must be an instance of `TemporalFailure`.
+   */
+  failureToError(err: ProtoFailure, payloadConverter: PayloadConverter, context?: SerializationContext): Error;
+}
+
+/**
+ * The "shape" of the attributes set as the {@link ProtoFailure.encodedAttributes} payload in case
+ * {@link DefaultEncodedFailureAttributes.encodeCommonAttributes} is set to `true`.
+ */
+export interface DefaultEncodedFailureAttributes {
+  message: string;
+  stack_trace: string;
+}
+
+/**
+ * Options for the {@link DefaultFailureConverter} constructor.
+ */
+export interface DefaultFailureConverterOptions {
+  /**
+   * Whether to encode error messages and stack traces (for encrypting these attributes use a {@link PayloadCodec}).
+   */
+  encodeCommonAttributes: boolean;
+}
+
+/**
+ * Default, cross-language-compatible Failure converter.
+ *
+ * By default, it will leave error messages and stack traces as plain text. In order to encrypt them, set
+ * `encodeCommonAttributes` to `true` in the constructor options and use a {@link PayloadCodec} that can encrypt /
+ * decrypt Payloads in your {@link WorkerOptions.dataConverter | Worker} and
+ * {@link ClientOptions.dataConverter | Client options}.
+ */
+export class DefaultFailureConverter implements FailureConverter {
+  public readonly options: DefaultFailureConverterOptions;
+
+  constructor(options?: Partial<DefaultFailureConverterOptions>) {
+    const { encodeCommonAttributes } = options ?? {};
+    this.options = {
+      encodeCommonAttributes: encodeCommonAttributes ?? false,
+    };
+  }
+
+  /**
+   * Converts a Failure proto message to a JS Error object.
+   *
+   * Does not set common properties, that is done in {@link failureToError}.
+   */
+  failureToErrorInner(
+    failure: ProtoFailure,
+    payloadConverter: PayloadConverter,
+    context?: SerializationContext
+  ): Error {
+    if (failure.applicationFailureInfo) {
+      return new ApplicationFailure(
+        failure.message ?? undefined,
+        failure.applicationFailureInfo.type,
+        Boolean(failure.applicationFailureInfo.nonRetryable),
+        arrayFromPayloads(payloadConverter, failure.applicationFailureInfo.details?.payloads, context),
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context),
+        undefined,
+        decodeApplicationFailureCategory(failure.applicationFailureInfo.category)
+      );
+    }
+    if (failure.serverFailureInfo) {
+      return new ServerFailure(
+        failure.message ?? undefined,
+        Boolean(failure.serverFailureInfo.nonRetryable),
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.timeoutFailureInfo) {
+      return new TimeoutFailure(
+        failure.message ?? undefined,
+        fromPayloadsAtIndex(payloadConverter, 0, failure.timeoutFailureInfo.lastHeartbeatDetails?.payloads, context),
+        decodeTimeoutType(failure.timeoutFailureInfo.timeoutType)
+      );
+    }
+    if (failure.terminatedFailureInfo) {
+      return new TerminatedFailure(
+        failure.message ?? undefined,
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.canceledFailureInfo) {
+      return new CancelledFailure(
+        failure.message ?? undefined,
+        arrayFromPayloads(payloadConverter, failure.canceledFailureInfo.details?.payloads, context),
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.resetWorkflowFailureInfo) {
+      return new ApplicationFailure(
+        failure.message ?? undefined,
+        'ResetWorkflow',
+        false,
+        arrayFromPayloads(payloadConverter, failure.resetWorkflowFailureInfo.lastHeartbeatDetails?.payloads, context),
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.childWorkflowExecutionFailureInfo) {
+      const { namespace, workflowType, workflowExecution, retryState } = failure.childWorkflowExecutionFailureInfo;
+      if (!(workflowType?.name && workflowExecution)) {
+        throw new TypeError('Missing attributes on childWorkflowExecutionFailureInfo');
+      }
+      return new ChildWorkflowFailure(
+        namespace ?? undefined,
+        workflowExecution,
+        workflowType.name,
+        decodeRetryState(retryState),
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.activityFailureInfo) {
+      if (!failure.activityFailureInfo.activityType?.name) {
+        throw new TypeError('Missing activityType?.name on activityFailureInfo');
+      }
+      return new ActivityFailure(
+        failure.message ?? undefined,
+        failure.activityFailureInfo.activityType.name,
+        failure.activityFailureInfo.activityId ?? undefined,
+        decodeRetryState(failure.activityFailureInfo.retryState),
+        failure.activityFailureInfo.identity ?? undefined,
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    if (failure.nexusHandlerFailureInfo) {
+      let retryableOverride: boolean | undefined = undefined;
+      const retryBehavior = decodeNexusHandlerErrorRetryBehavior(failure.nexusHandlerFailureInfo.retryBehavior);
+      switch (retryBehavior) {
+        case 'RETRYABLE':
+          retryableOverride = true;
+          break;
+        case 'NON_RETRYABLE':
+          retryableOverride = false;
+          break;
+      }
+
+      const rawErrorType = failure.nexusHandlerFailureInfo.type || '';
+      const resolvedType: nexus.HandlerErrorType = Object.hasOwn(nexus.HandlerErrorType, rawErrorType)
+        ? nexus.HandlerErrorType[rawErrorType as keyof typeof nexus.HandlerErrorType]
+        : 'UNKNOWN';
+
+      return new nexus.HandlerError(resolvedType, failure.message ?? 'Nexus handler error', {
+        cause: this.optionalFailureToOptionalError(failure.cause, payloadConverter, context),
+        retryableOverride,
+        rawErrorType,
+        originalFailure: this.temporalFailureToNexusFailure(failure),
+      });
+    }
+    if (failure.nexusOperationExecutionFailureInfo) {
+      return new NexusOperationFailure(
+        // TODO(nexus/error): Maybe set a default message here, once we've decided on error handling.
+        failure.message ?? undefined,
+        failure.nexusOperationExecutionFailureInfo.scheduledEventId?.toNumber(),
+        // We assume these will always be set or gracefully set to empty strings.
+        failure.nexusOperationExecutionFailureInfo.endpoint ?? '',
+        failure.nexusOperationExecutionFailureInfo.service ?? '',
+        failure.nexusOperationExecutionFailureInfo.operation ?? '',
+        failure.nexusOperationExecutionFailureInfo.operationToken ?? undefined,
+        this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+      );
+    }
+    return new TemporalFailure(
+      failure.message ?? undefined,
+      this.optionalFailureToOptionalError(failure.cause, payloadConverter, context)
+    );
+  }
+
+  failureToError(failure: ProtoFailure, payloadConverter: PayloadConverter, context?: SerializationContext): Error {
+    if (failure.encodedAttributes) {
+      const attrs = payloadConverter.fromPayload<DefaultEncodedFailureAttributes>(failure.encodedAttributes, context);
+      // Don't apply encodedAttributes unless they conform to an expected schema
+      if (typeof attrs === 'object' && attrs !== null) {
+        const { message, stack_trace } = attrs;
+        // Avoid mutating the argument
+        failure = { ...failure };
+        if (typeof message === 'string') {
+          failure.message = message;
+        }
+        if (typeof stack_trace === 'string') {
+          failure.stackTrace = stack_trace;
+        }
+      }
+    }
+    const err = this.failureToErrorInner(failure, payloadConverter, context);
+    err.stack = failure.stackTrace ?? '';
+    if (err instanceof TemporalFailure) {
+      err.failure = failure;
+    }
+    return err;
+  }
+
+  errorToFailure(err: unknown, payloadConverter: PayloadConverter, context?: SerializationContext): ProtoFailure {
+    const failure = this.errorToFailureInner(err, payloadConverter, context);
+    if (this.options.encodeCommonAttributes) {
+      const { message, stackTrace } = failure;
+      failure.message = 'Encoded failure';
+      failure.stackTrace = '';
+      failure.encodedAttributes = payloadConverter.toPayload({ message, stack_trace: stackTrace }, context);
+    }
+    return failure;
+  }
+
+  errorToFailureInner(err: unknown, payloadConverter: PayloadConverter, context?: SerializationContext): ProtoFailure {
+    if (err instanceof TemporalFailure || err instanceof nexus.HandlerError) {
+      if (err instanceof TemporalFailure && err.failure) return err.failure;
+      const base = {
+        message: err.message,
+        stackTrace: cutoffStackTrace(err.stack),
+        cause: this.optionalErrorToOptionalFailure(err.cause, payloadConverter, context),
+        source: FAILURE_SOURCE,
+      };
+
+      if (err instanceof ActivityFailure) {
+        return {
+          ...base,
+          activityFailureInfo: {
+            ...err,
+            retryState: encodeRetryState(err.retryState),
+            activityType: { name: err.activityType },
+          },
+        };
+      }
+      if (err instanceof ChildWorkflowFailure) {
+        return {
+          ...base,
+          childWorkflowExecutionFailureInfo: {
+            ...err,
+            retryState: encodeRetryState(err.retryState),
+            workflowExecution: err.execution,
+            workflowType: { name: err.workflowType },
+          },
+        };
+      }
+      if (err instanceof ApplicationFailure) {
+        return {
+          ...base,
+          applicationFailureInfo: {
+            type: err.type,
+            nonRetryable: err.nonRetryable,
+            details:
+              err.details && err.details.length
+                ? { payloads: toPayloadsWithContext(payloadConverter, context, err.details) }
+                : undefined,
+            nextRetryDelay: msOptionalToTs(err.nextRetryDelay),
+            category: encodeApplicationFailureCategory(err.category),
+          },
+        };
+      }
+      if (err instanceof CancelledFailure) {
+        return {
+          ...base,
+          canceledFailureInfo: {
+            details:
+              err.details && err.details.length
+                ? { payloads: toPayloadsWithContext(payloadConverter, context, err.details) }
+                : undefined,
+          },
+        };
+      }
+      if (err instanceof TimeoutFailure) {
+        return {
+          ...base,
+          timeoutFailureInfo: {
+            timeoutType: encodeTimeoutType(err.timeoutType),
+            lastHeartbeatDetails: err.lastHeartbeatDetails
+              ? { payloads: toPayloadsWithContext(payloadConverter, context, [err.lastHeartbeatDetails]) }
+              : undefined,
+          },
+        };
+      }
+      if (err instanceof ServerFailure) {
+        return {
+          ...base,
+          serverFailureInfo: { nonRetryable: err.nonRetryable },
+        };
+      }
+      if (err instanceof TerminatedFailure) {
+        return {
+          ...base,
+          terminatedFailureInfo: {},
+        };
+      }
+      if (err instanceof nexus.HandlerError) {
+        if (err.originalFailure) {
+          return this.nexusFailureToTemporalFailure(err.originalFailure, err.retryable);
+        } else {
+          let retryBehavior: temporal.api.enums.v1.NexusHandlerErrorRetryBehavior | undefined = undefined;
+          switch (err.retryableOverride) {
+            case true:
+              retryBehavior = encodeNexusHandlerErrorRetryBehavior('RETRYABLE');
+              break;
+            case false:
+              retryBehavior = encodeNexusHandlerErrorRetryBehavior('NON_RETRYABLE');
+              break;
+          }
+
+          return {
+            ...base,
+            nexusHandlerFailureInfo: {
+              type: err.type,
+              retryBehavior,
+            },
+          };
+        }
+      }
+      if (err instanceof NexusOperationFailure) {
+        return {
+          ...base,
+          nexusOperationExecutionFailureInfo: {
+            scheduledEventId: err.scheduledEventId ? Long.fromNumber(err.scheduledEventId) : undefined,
+            endpoint: err.endpoint,
+            service: err.service,
+            operation: err.operation,
+            operationToken: err.operationToken,
+          },
+        };
+      }
+      // Just a TemporalFailure
+      return base;
+    }
+
+    const base = {
+      source: FAILURE_SOURCE,
+    };
+
+    if (isError(err)) {
+      return {
+        ...base,
+        message: String(err.message ?? ''),
+        stackTrace: cutoffStackTrace(err.stack),
+        cause: this.optionalErrorToOptionalFailure((err as any).cause, payloadConverter, context),
+      };
+    }
+
+    const recommendation = ` [A non-Error value was thrown from your code. We recommend throwing Error objects so that we can provide a stack trace]`;
+
+    if (typeof err === 'string') {
+      return { ...base, message: err + recommendation };
+    }
+    if (typeof err === 'object') {
+      let message = '';
+      try {
+        message = JSON.stringify(err);
+      } catch (_err) {
+        message = String(err);
+      }
+      return { ...base, message: message + recommendation };
+    }
+
+    return { ...base, message: String(err) + recommendation };
+  }
+
+  /**
+   * Converts a Failure proto message to a JS Error object if defined or returns undefined.
+   */
+  optionalFailureToOptionalError(
+    failure: ProtoFailure | undefined | null,
+    payloadConverter: PayloadConverter,
+    context?: SerializationContext
+  ): Error | undefined {
+    return failure ? this.failureToError(failure, payloadConverter, context) : undefined;
+  }
+
+  /**
+   * Converts an error to a Failure proto message if defined or returns undefined
+   */
+  optionalErrorToOptionalFailure(
+    err: unknown,
+    payloadConverter: PayloadConverter,
+    context?: SerializationContext
+  ): ProtoFailure | undefined {
+    return err ? this.errorToFailure(err, payloadConverter, context) : undefined;
+  }
+
+  private nexusFailureToTemporalFailure(failure: nexus.Failure, retryable: boolean): ProtoFailure {
+    if (failure.metadata?.type === 'temporal.api.failure.v1.Failure') {
+      if (failure.details == null) {
+        throw new TypeError("missing details for Nexus Failure of type 'temporal.api.failure.v1.Failure'");
+      }
+      return failure.details;
+    } else {
+      const temporalFailure: ProtoFailure = {};
+      temporalFailure.applicationFailureInfo = {
+        type: 'NexusFailure',
+        nonRetryable: !retryable,
+        details: {
+          payloads: [
+            {
+              metadata: { encoding: encode('json/plain') },
+              data: encode(JSON.stringify({ ...failure, message: '' })),
+            },
+          ],
+        },
+      };
+      temporalFailure.message = failure.message;
+      temporalFailure.stackTrace = failure.stackTrace ?? '';
+      return temporalFailure;
+    }
+  }
+
+  private temporalFailureToNexusFailure(failure: ProtoFailure): nexus.Failure {
+    return {
+      message: failure.message ?? '',
+      metadata: { type: 'temporal.api.failure.v1.Failure' },
+      // Store the full ProtoFailure as the Nexus failure details so it can be round-tripped
+      // losslessly back to a ProtoFailure via nexusFailureToTemporalFailure.
+      details: { ...failure },
+    };
+  }
+}

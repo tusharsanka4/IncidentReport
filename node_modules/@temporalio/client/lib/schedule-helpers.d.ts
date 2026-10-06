@@ -1,0 +1,16 @@
+import type { LoadedDataConverter } from '@temporalio/common';
+import type { Headers } from '@temporalio/common/lib/interceptors';
+import { temporal } from '@temporalio/proto';
+import type { CalendarSpec, CalendarSpecDescription, CompiledScheduleOptions, CompiledScheduleUpdateOptions, ScheduleOptions, ScheduleUpdateOptions, ScheduleSpec, CompiledScheduleAction, ScheduleSpecDescription, ScheduleDescriptionAction, ScheduleExecutionResult, ScheduleExecutionStartWorkflowActionResult } from './schedule-types';
+export declare function encodeOptionalStructuredCalendarSpecs(input: CalendarSpec[] | null | undefined): temporal.api.schedule.v1.IStructuredCalendarSpec[] | undefined;
+export declare function decodeOptionalStructuredCalendarSpecs(input: temporal.api.schedule.v1.IStructuredCalendarSpec[] | null | undefined): CalendarSpecDescription[];
+export declare function compileScheduleOptions(options: ScheduleOptions): CompiledScheduleOptions;
+export declare function compileUpdatedScheduleOptions(scheduleId: string, options: ScheduleUpdateOptions): CompiledScheduleUpdateOptions;
+export declare function encodeScheduleSpec(spec: ScheduleSpec): temporal.api.schedule.v1.IScheduleSpec;
+export declare function encodeScheduleAction(dataConverter: LoadedDataConverter, namespace: string, action: CompiledScheduleAction, headers: Headers): Promise<temporal.api.schedule.v1.IScheduleAction>;
+export declare function encodeSchedulePolicies(policies?: ScheduleOptions['policies']): temporal.api.schedule.v1.ISchedulePolicies;
+export declare function encodeScheduleState(state?: ScheduleOptions['state']): temporal.api.schedule.v1.IScheduleState;
+export declare function decodeScheduleSpec(pb: temporal.api.schedule.v1.IScheduleSpec): ScheduleSpecDescription;
+export declare function decodeScheduleAction(dataConverter: LoadedDataConverter, namespace: string, pb: temporal.api.schedule.v1.IScheduleAction): Promise<ScheduleDescriptionAction>;
+export declare function decodeScheduleRunningActions(pb?: temporal.api.common.v1.IWorkflowExecution[] | null): ScheduleExecutionStartWorkflowActionResult[];
+export declare function decodeScheduleRecentActions(pb?: temporal.api.schedule.v1.IScheduleActionResult[] | null): ScheduleExecutionResult[];
