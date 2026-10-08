@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "migrate:temporal": "tsx database/migrate-temporal.ts",
+    "temporal:status": "tsx services/temporal-worker/src/client/status-workflow.ts",
+    "test:temporal": "tsx --test tests/unit/temporal-policy.test.ts tests/integration/temporal-persistence.test.ts tests/integration/temporal-workflow.test.ts",
+    "temporal:decide": "tsx services/temporal-worker/src/client/decide-workflow.ts",
     "temporal:start": "tsx services/temporal-worker/src/client/start-workflow.ts",
     "temporal:worker": "tsx services/temporal-worker/src/worker.ts",
     "test:agent": "tsx --test tests/unit/agent.test.ts",
@@ -28,6 +32,8 @@
   },
   "homepage": "https://github.com/tusharsanka4/IncidentReport#readme",
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@temporalio/testing": "^1.24.0",
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.13",

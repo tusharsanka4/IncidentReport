@@ -15,6 +15,8 @@ const UnknownObjectSchema = z.record(
 export const AgentState = new StateSchema({
   incidentId: z.string().min(1),
 
+  workflowId: z.string().min(1).optional(),
+
   incident: UnknownObjectSchema
     .nullable()
     .default(null),

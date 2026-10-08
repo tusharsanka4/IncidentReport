@@ -21,6 +21,7 @@ interface RecommendedAction {
 }
 
 interface RecordAnalysisInput {
+  workflow_id?: string;
   incident_id: string;
   probable_change_id: string | null;
   confidence_score: number;
@@ -47,11 +48,17 @@ export async function recordAnalysisResultTool(
   try {
     await client.query("BEGIN");
 
+    const incidentStatus =
+      input.analysis_status === "MANUAL_INVESTIGATION"
+        ? "ESCALATED"
+        : "AWAITING_APPROVAL";
+
     const incidentResult = await client.query(
       `
-        SELECT id
+        SELECT id, status
         FROM incidents
         WHERE id = $1
+        FOR UPDATE
       `,
       [input.incident_id]
     );
@@ -63,6 +70,36 @@ export async function recordAnalysisResultTool(
         "INCIDENT_NOT_FOUND",
         `Incident ${input.incident_id} was not found`
       );
+    }
+
+    if (input.workflow_id) {
+      const existingResult = await client.query<AnalysisRow>(
+        "SELECT * FROM analysis_results WHERE workflow_id = $1",
+        [input.workflow_id]
+      );
+
+      const existing = existingResult.rows[0];
+
+      if (existing) {
+        await client.query("ROLLBACK");
+
+        if (existing.incident_id !== input.incident_id) {
+          return createToolError(
+            "WORKFLOW_ANALYSIS_CONFLICT",
+            "This workflow already has an analysis for another incident"
+          );
+        }
+
+        return createToolResponse({
+          analysis_id: existing.id,
+          incident_id: existing.incident_id,
+          probable_change_id: existing.probable_change_id,
+          confidence_score: Number(existing.confidence_score),
+          analysis_status: existing.analysis_status,
+          incident_status: incidentResult.rows[0].status,
+          created_at: existing.created_at
+        });
+      }
     }
 
     if (input.probable_change_id !== null) {
@@ -94,7 +131,8 @@ export async function recordAnalysisResultTool(
           reasoning_summary,
           evidence,
           recommended_action,
-          analysis_status
+          analysis_status,
+          workflow_id
         )
         VALUES (
           $1,
@@ -103,8 +141,11 @@ export async function recordAnalysisResultTool(
           $4,
           $5::jsonb,
           $6::jsonb,
-          $7
+          $7,
+          $8
         )
+        ON CONFLICT (workflow_id)
+        DO UPDATE SET workflow_id = EXCLUDED.workflow_id
         RETURNING
           id,
           incident_id,
@@ -120,19 +161,29 @@ export async function recordAnalysisResultTool(
         input.reasoning_summary,
         JSON.stringify(input.evidence),
         JSON.stringify(input.recommended_action),
-        input.analysis_status
+        input.analysis_status,
+        input.workflow_id ?? null
       ]
     );
+
+    if (result.rows[0]?.incident_id !== input.incident_id) {
+      await client.query("ROLLBACK");
+
+      return createToolError(
+        "WORKFLOW_ANALYSIS_CONFLICT",
+        "This workflow already has an analysis for another incident"
+      );
+    }
 
     await client.query(
       `
         UPDATE incidents
         SET
-          status = 'AWAITING_APPROVAL',
+          status = $2,
           updated_at = NOW()
         WHERE id = $1
       `,
-      [input.incident_id]
+      [input.incident_id, incidentStatus]
     );
 
     await client.query("COMMIT");
@@ -156,7 +207,7 @@ export async function recordAnalysisResultTool(
       ),
       analysis_status:
         analysis.analysis_status,
-      incident_status: "AWAITING_APPROVAL",
+      incident_status: incidentStatus,
       created_at: analysis.created_at
     });
   } catch (error) {

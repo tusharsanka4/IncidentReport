@@ -25,6 +25,8 @@ function createState(
   return {
     incidentId: "INC-TEST",
 
+    workflowId: undefined,
+
     incident: {
       incident_id: "INC-TEST",
       service: "order-service",

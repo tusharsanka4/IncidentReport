@@ -1,14 +1,28 @@
 import {
-  incidentAnalysisGraph
-} from "../../../agent/src/graph.js";
+  findWorkflowAnalysis
+} from "../repositories/analysis.repository.js";
 
 import type {
   AnalysisActivityResult
 } from "../shared.types.js";
 
 export async function analyseIncidentActivity(
-  incidentId: string
+  incidentId: string,
+  workflowId: string
 ): Promise<AnalysisActivityResult> {
+  const storedAnalysis = await findWorkflowAnalysis(
+    incidentId,
+    workflowId
+  );
+
+  if (storedAnalysis) {
+    return storedAnalysis;
+  }
+
+  const {
+    incidentAnalysisGraph
+  } = await import("../../../agent/src/graph.js");
+
   console.log(
     `Temporal activity analysing ${incidentId}`
   );
@@ -16,6 +30,8 @@ export async function analyseIncidentActivity(
   const result =
     await incidentAnalysisGraph.invoke({
       incidentId,
+
+      workflowId,
 
       incident: null,
 
@@ -42,27 +58,16 @@ export async function analyseIncidentActivity(
     );
   }
 
-  return {
+  const recordedAnalysis = await findWorkflowAnalysis(
     incidentId,
+    workflowId
+  );
 
-    probableChangeId:
-      result.analysis
-        .probable_change_id,
+  if (!recordedAnalysis) {
+    throw new Error(
+      "The analysis was not persisted for this workflow"
+    );
+  }
 
-    confidenceScore:
-      result.analysis
-        .confidence_score,
-
-    reasoningSummary:
-      result.analysis
-        .reasoning_summary,
-
-    recommendedAction:
-      result.analysis
-        .recommended_action,
-
-    analysisStatus:
-      result.analysis
-        .analysis_status
-  };
+  return recordedAnalysis;
 }

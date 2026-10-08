@@ -7,6 +7,9 @@ import {
 
 import * as activities from "./activities/index.js";
 
+import { database } from "../../shared/src/database.js";
+import { closeMcpClient } from "../../agent/src/helpers/mcp-client.js";
+
 async function startWorker(): Promise<void> {
   const temporalAddress =
     process.env.TEMPORAL_ADDRESS ?? "localhost:7233";
@@ -31,22 +34,24 @@ async function startWorker(): Promise<void> {
     `Connected to Temporal at ${temporalAddress}`
   );
 
-  const worker = await Worker.create({
-    connection,
-    namespace,
-    taskQueue,
-    workflowsPath,
-    activities
-  });
-
-  console.log(
-    `Temporal worker listening on task queue: ${taskQueue}`
-  );
-
   try {
+    const worker = await Worker.create({
+      connection,
+      namespace,
+      taskQueue,
+      workflowsPath,
+      activities
+    });
+
+    console.log(
+      `Temporal worker listening on task queue: ${taskQueue}`
+    );
+
     await worker.run();
   } finally {
-    connection.close();
+    await closeMcpClient();
+    await database.end();
+    await connection.close();
   }
 }
 

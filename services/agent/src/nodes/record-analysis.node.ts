@@ -8,7 +8,9 @@ import {
 } from "../helpers/mcp-client.js";
 
 import {
-  getErrorMessage
+  getErrorMessage,
+  isRecord,
+  unwrapToolData
 } from "../helpers/tool-data.js";
 
 export async function recordAnalysisNode(
@@ -23,11 +25,13 @@ export async function recordAnalysisNode(
   }
 
   try {
-    await invokeMcpTool(
+    const response = await invokeMcpTool(
       "record_analysis_result",
       {
         incident_id:
           state.incidentId,
+
+        workflow_id: state.workflowId,
 
         probable_change_id:
           state.analysis
@@ -53,6 +57,16 @@ export async function recordAnalysisNode(
             .analysis_status
       }
     );
+
+    const recorded = unwrapToolData(response);
+
+    if (
+      !isRecord(recorded) ||
+      recorded.analysis_id === undefined ||
+      "error" in recorded
+    ) {
+      throw new Error("The MCP tool did not confirm analysis persistence");
+    }
 
     return {
       status:

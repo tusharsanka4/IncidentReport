@@ -51,6 +51,11 @@ let loadedTools:
     ReturnType<typeof mcpClient.getTools>
   > | null = null;
 
+export async function closeMcpClient(): Promise<void> {
+  await mcpClient.close();
+  loadedTools = null;
+}
+
 async function getTools() {
   if (!loadedTools) {
     loadedTools = await mcpClient.getTools();

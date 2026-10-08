@@ -3,8 +3,10 @@ export type WorkflowStatus =
   | "AWAITING_APPROVAL"
   | "APPROVED"
   | "REJECTED"
-  | "REMEDIATION_COMPLETED"
-  | "MANUAL_INVESTIGATION"
+  | "REMEDIATING"
+  | "VERIFYING_HEALTH"
+  | "RESOLVED"
+  | "ESCALATED"
   | "FAILED";
 
 export type ApprovalDecisionType =
@@ -13,7 +15,14 @@ export type ApprovalDecisionType =
 
 export interface IncidentWorkflowInput {
   incidentId: string;
+
+  simulation?: SimulationScenario;
 }
+
+export type SimulationScenario =
+  | "SUCCESS"
+  | "REMEDIATION_FAILURE"
+  | "UNHEALTHY";
 
 export interface RecommendedAction {
   type:
@@ -37,6 +46,8 @@ export interface RecommendedAction {
 export interface AnalysisActivityResult {
   incidentId: string;
 
+  analysisId: string;
+
   probableChangeId: string | null;
 
   confidenceScore: number;
@@ -52,6 +63,8 @@ export interface AnalysisActivityResult {
 }
 
 export interface ApprovalDecision {
+  approvalRequestId: string;
+
   decision: ApprovalDecisionType;
 
   decidedBy: string;
@@ -86,5 +99,46 @@ export interface IncidentWorkflowResult {
 
   remediation?: RemediationResult;
 
+  health?: ServiceHealthResult;
+
   error?: string;
 }
+
+export interface ApprovalRequest {
+  id: string;
+
+  analysisId: string;
+
+  requestedAction: RecommendedAction;
+}
+
+export interface ServiceHealthResult {
+  healthy: boolean;
+
+  simulated: true;
+
+  resource: string;
+
+  message: string;
+
+  checkedAt: string;
+}
+
+export interface WorkflowTimelineEvent {
+  status: WorkflowStatus;
+
+  timestamp: string;
+}
+
+export interface IncidentWorkflowSnapshot
+  extends IncidentWorkflowResult {
+  workflowId: string;
+
+  approvalRequest?: ApprovalRequest;
+
+  timeline: WorkflowTimelineEvent[];
+}
+
+export type IncidentWorkflow = (
+  input: IncidentWorkflowInput
+) => Promise<IncidentWorkflowSnapshot>;

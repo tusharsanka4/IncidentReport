@@ -1,5 +1,9 @@
 import { database } from "../../../shared/src/database.js";
 
+import {
+  redactSensitiveData
+} from "../../../shared/src/redaction.js";
+
 interface ToolResult {
   isError?: boolean;
   content: Array<{
@@ -40,8 +44,8 @@ async function recordToolAudit(
       "MCP_TOOL",
       toolName,
       "TOOL_EXECUTED",
-      input,
-      output,
+      redactSensitiveData(input),
+      redactSensitiveData(output),
       status
     ]
   );

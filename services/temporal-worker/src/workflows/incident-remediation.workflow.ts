@@ -2,8 +2,10 @@ import {
   condition,
   defineQuery,
   defineSignal,
+  isCancellation,
   proxyActivities,
-  setHandler
+  setHandler,
+  workflowInfo
 } from "@temporalio/workflow";
 
 import type * as activities from "../activities/index.js";
@@ -11,14 +13,20 @@ import type * as activities from "../activities/index.js";
 import type {
   ApprovalDecision,
   IncidentWorkflowInput,
-  IncidentWorkflowResult,
+  IncidentWorkflowSnapshot,
   WorkflowStatus
 } from "../shared.types.js";
+
+import {
+  isValidApprovalDecision,
+  parseSimulationScenario,
+  validateRemediationAction
+} from "../remediation-policy.js";
 
 const analysisActivities =
   proxyActivities<typeof activities>({
     startToCloseTimeout: "5 minutes",
-
+    scheduleToCloseTimeout: "20 minutes",
     retry: {
       maximumAttempts: 3,
       initialInterval: "5 seconds",
@@ -26,118 +34,217 @@ const analysisActivities =
     }
   });
 
-const remediationActivities =
+const lifecycleActivities =
   proxyActivities<typeof activities>({
-    startToCloseTimeout: "2 minutes",
-
+    startToCloseTimeout: "1 minute",
+    scheduleToCloseTimeout: "5 minutes",
     retry: {
-      maximumAttempts: 1
+      maximumAttempts: 3,
+      initialInterval: "1 second",
+      backoffCoefficient: 2
     }
   });
 
+const remediationActivities =
+  proxyActivities<typeof activities>({
+    startToCloseTimeout: "2 minutes",
+    scheduleToCloseTimeout: "10 minutes",
+    retry: {
+      maximumAttempts: 3,
+      initialInterval: "2 seconds",
+      backoffCoefficient: 2
+    }
+  });
+
+// Retained for compatibility with the original decision client.
 export const approvalDecisionSignal =
-  defineSignal<[ApprovalDecision]>(
-    "approvalDecision"
-  );
+  defineSignal<[ApprovalDecision]>("approvalDecision");
+
+export const approveRemediationSignal =
+  defineSignal<[ApprovalDecision]>("approveRemediation");
+
+export const rejectRemediationSignal =
+  defineSignal<[ApprovalDecision]>("rejectRemediation");
 
 export const workflowStatusQuery =
-  defineQuery<WorkflowStatus>(
-    "workflowStatus"
-  );
+  defineQuery<WorkflowStatus>("workflowStatus");
+
+export const workflowSnapshotQuery =
+  defineQuery<IncidentWorkflowSnapshot>("workflowSnapshot");
+
+export const recommendationQuery =
+  defineQuery<IncidentWorkflowSnapshot["analysis"]>("getRecommendation");
+
+export const approvalStatusQuery =
+  defineQuery<IncidentWorkflowSnapshot["approval"]>("getApprovalStatus");
+
+export const timelineQuery =
+  defineQuery<IncidentWorkflowSnapshot["timeline"]>("getTimeline");
 
 export async function incidentRemediationWorkflow(
   input: IncidentWorkflowInput
-): Promise<IncidentWorkflowResult> {
-  let status: WorkflowStatus =
-    "ANALYSING";
+): Promise<IncidentWorkflowSnapshot> {
+  const workflowId = workflowInfo().workflowId;
 
-  let approval:
-    ApprovalDecision | undefined;
+  const snapshot: IncidentWorkflowSnapshot = {
+    incidentId: input.incidentId,
+    workflowId,
+    status: "ANALYSING",
+    timeline: []
+  };
 
-  setHandler(
-    workflowStatusQuery,
-    () => status
-  );
+  let pendingDecision: ApprovalDecision | undefined;
 
-  setHandler(
-    approvalDecisionSignal,
-    decision => {
-      /*
-       * Accept only the first decision.
-       * Later duplicate signals are ignored.
-       */
-      if (!approval) {
-        approval = decision;
-      }
+  setHandler(workflowStatusQuery, () => snapshot.status);
+  setHandler(workflowSnapshotQuery, () => snapshot);
+  setHandler(recommendationQuery, () => snapshot.analysis);
+  setHandler(approvalStatusQuery, () => snapshot.approval);
+  setHandler(timelineQuery, () => snapshot.timeline);
+
+  function acceptDecision(
+    decision: ApprovalDecision
+  ): void {
+    if (
+      snapshot.status !== "AWAITING_APPROVAL" ||
+      pendingDecision ||
+      !isValidApprovalDecision(decision) ||
+      decision.approvalRequestId !== snapshot.approvalRequest?.id
+    ) {
+      return;
     }
-  );
 
-const analysis =
-  await analysisActivities
-    .analyseIncidentActivity(
-      input.incidentId
-    );
+    pendingDecision = decision;
+  }
 
-  if (
-    analysis.analysisStatus ===
-    "MANUAL_INVESTIGATION"
-  ) {
-    status = "MANUAL_INVESTIGATION";
+  setHandler(approvalDecisionSignal, acceptDecision);
 
-    return {
-      incidentId: input.incidentId,
+  setHandler(approveRemediationSignal, decision => {
+    if (decision?.decision === "APPROVED") {
+      acceptDecision(decision);
+    }
+  });
+
+  setHandler(rejectRemediationSignal, decision => {
+    if (decision?.decision === "REJECTED") {
+      acceptDecision(decision);
+    }
+  });
+
+  async function transitionTo(
+    status: WorkflowStatus,
+    details?: unknown
+  ): Promise<void> {
+    await lifecycleActivities.recordWorkflowStatusActivity(
+      input.incidentId,
+      workflowId,
       status,
-      analysis
-    };
-  }
-
-  status = "AWAITING_APPROVAL";
-
-  /*
-   * The workflow pauses here without consuming
-   * CPU while waiting for an approval signal.
-   */
-  await condition(
-    () => approval !== undefined
-  );
-
-  const finalApproval = approval;
-
-  if (!finalApproval) {
-    throw new Error(
-      "Approval condition completed without a decision"
+      details
     );
-  }
 
-  if (
-    finalApproval.decision === "REJECTED"
-  ) {
-    status = "REJECTED";
+    snapshot.status = status;
 
-    return {
-      incidentId: input.incidentId,
+    snapshot.timeline.push({
       status,
-      analysis,
-      approval: finalApproval
-    };
+      timestamp: new Date().toISOString()
+    });
   }
 
-status = "APPROVED";
+  try {
+    const simulation = parseSimulationScenario(input.simulation);
 
-const remediation =
-  await remediationActivities
-    .executeRemediationActivity(
-      analysis.recommendedAction,
-      finalApproval
+    await transitionTo("ANALYSING");
+
+    snapshot.analysis = await analysisActivities.analyseIncidentActivity(
+      input.incidentId,
+      workflowId
     );
 
-status = "REMEDIATION_COMPLETED";
+    if (snapshot.analysis.analysisStatus === "MANUAL_INVESTIGATION") {
+      await transitionTo("ESCALATED", {
+        reason: "Manual investigation is required"
+      });
 
-return {
-  incidentId: input.incidentId,
-  status,
-  analysis,
-  approval: finalApproval,
-  remediation
-};
+      return snapshot;
+    }
+
+    validateRemediationAction(snapshot.analysis.recommendedAction);
+
+    snapshot.approvalRequest =
+      await lifecycleActivities.createApprovalRequestActivity(
+        input.incidentId,
+        workflowId,
+        snapshot.analysis
+      );
+
+    await transitionTo("AWAITING_APPROVAL");
+
+    // Temporal keeps this wait durable across worker restarts.
+    await condition(() => pendingDecision !== undefined);
+
+    const decision = pendingDecision;
+
+    if (!decision) {
+      throw new Error("Approval wait completed without a decision");
+    }
+
+    snapshot.approval =
+      await lifecycleActivities.recordApprovalDecisionActivity(
+        input.incidentId,
+        workflowId,
+        decision
+      );
+
+    if (snapshot.approval.decision === "REJECTED") {
+      await transitionTo("REJECTED");
+
+      return snapshot;
+    }
+
+    await transitionTo("APPROVED");
+    await transitionTo("REMEDIATING");
+
+    snapshot.remediation =
+      await remediationActivities.executeRemediationActivity(
+        input.incidentId,
+        workflowId,
+        snapshot.analysis.recommendedAction,
+        snapshot.approval,
+        simulation
+      );
+
+    if (!snapshot.remediation.success) {
+      await transitionTo("ESCALATED", snapshot.remediation);
+
+      return snapshot;
+    }
+
+    await transitionTo("VERIFYING_HEALTH");
+
+    snapshot.health =
+      await remediationActivities.verifyServiceHealthActivity(
+        input.incidentId,
+        workflowId
+      );
+
+    await transitionTo(
+      snapshot.health.healthy ? "RESOLVED" : "ESCALATED",
+      snapshot.health
+    );
+
+    return snapshot;
+  } catch (error) {
+    if (isCancellation(error)) {
+      throw error;
+    }
+
+    snapshot.error =
+      error instanceof Error ? error.message : String(error);
+
+    await transitionTo(
+      snapshot.analysis ? "ESCALATED" : "FAILED",
+      { error: snapshot.error }
+    );
+
+    return snapshot;
+  }
 }

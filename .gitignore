@@ -1,2 +1,25 @@
-Manifest-It-project
+# Dependencies and local Python environments
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated builds and test output
+dist/
+coverage/
+*.tsbuildinfo
+.temporal/
+
+# Local environment configuration (keep the template tracked)
 .env
+.env.*
+!.env.example
+
+# Local logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Existing local project-directory exclusion
+Manifest-It-project

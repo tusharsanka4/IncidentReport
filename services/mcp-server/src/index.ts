@@ -210,6 +210,8 @@ server.registerTool(
     description:
       "Stores an evidence-based incident analysis and recommendation.",
     inputSchema: {
+      workflow_id: z.string().min(1).optional(),
+
       incident_id: z
         .string()
         .min(1),
