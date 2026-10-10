@@ -35,19 +35,13 @@ export async function recordWorkflowStatus(
       return;
     }
 
-    // The original incident schema represents verification as REMEDIATING.
-    const incidentStatus =
-      status === "VERIFYING_HEALTH"
-        ? "REMEDIATING"
-        : status;
-
     await client.query(
       `
         UPDATE incidents
         SET status = $2, updated_at = NOW()
         WHERE id = $1
       `,
-      [incidentId, incidentStatus]
+      [incidentId, status]
     );
 
     await recordWorkflowAudit(client, {

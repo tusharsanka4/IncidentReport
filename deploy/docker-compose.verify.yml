@@ -1,0 +1,19 @@
+# Use --project-name manifest-verification and both Compose files.
+# Separate containers, ports, and project-scoped volumes preserve local data.
+services:
+  postgres:
+    container_name: manifest-verify-postgres
+    environment:
+      POSTGRES_USER: manifest_verify
+      POSTGRES_PASSWORD: local_verification_only
+      POSTGRES_DB: manifest_verification
+    ports: !override
+      - "127.0.0.1:15432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manifest_verify -d manifest_verification"]
+
+  temporal:
+    container_name: manifest-verify-temporal
+    ports: !override
+      - "127.0.0.1:17233:7233"
+      - "127.0.0.1:18233:8233"

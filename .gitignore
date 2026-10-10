@@ -8,6 +8,7 @@ __pycache__/
 # Generated builds and test output
 dist/
 coverage/
+backups/
 *.tsbuildinfo
 .temporal/
 

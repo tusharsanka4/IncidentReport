@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "migrate": "tsx database/migrate.ts",
+    "test:database": "tsx --test tests/integration/database-migrations.test.ts",
+    "test:docker-temporal": "tsx --test tests/integration/docker-temporal.test.ts",
     "test:api": "tsx --test tests/integration/approval-api.test.ts",
     "migrate:temporal": "tsx database/migrate-temporal.ts",
     "temporal:status": "tsx services/temporal-worker/src/client/status-workflow.ts",

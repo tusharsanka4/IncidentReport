@@ -38,23 +38,22 @@ Analysis activity failures are retried. If all attempts fail before a usable
 analysis exists, the incident becomes `FAILED`. Failures after analysis
 become `ESCALATED`. Rejection stops the workflow without executing remediation.
 
-The workflow exposes `VERIFYING_HEALTH` as a distinct phase. PostgreSQL keeps
-the incident at `REMEDIATING` during verification because the original
-incident-status constraint does not include a separate verification value.
-The audit event records the exact workflow phase.
+The workflow and PostgreSQL both store `VERIFYING_HEALTH` as a distinct phase
+after migration `003`. The audit event records the exact workflow phase too.
 
 ## Database Upgrade
 
-For an existing database initialized with migration `001`, apply the new,
-repeatable lifecycle migration before starting the new worker:
+For either a fresh or existing database, apply all pending migrations before
+starting the worker:
 
 ```powershell
-npm run migrate:temporal
+npm run migrate
 ```
 
-Fresh PostgreSQL containers automatically run both SQL files through the
-existing Docker entrypoint initialization mount. Existing volumes do not
-rerun Docker initialization scripts, so they need the command above.
+The migration runner tracks filenames and checksums and safely adopts the
+existing initial schema. Docker no longer mounts raw migration SQL at startup;
+both fresh containers and existing volumes use the same command above.
+`npm run migrate:temporal` remains a compatibility alias for the full upgrade.
 
 Migration `002_temporal_lifecycle.sql` adds:
 
@@ -67,24 +66,27 @@ records are removed.
 
 ## Running Locally
 
-Start PostgreSQL and seed the reference resources and changes:
+Stop any manually running Temporal dev server before using the normal Compose
+stack: both use port 7233. Docker provides a separate history store; workflows
+from your Windows CLI server are not automatically copied into it. Finish
+pending workflows on the old server first, or use fresh incident IDs in Docker.
+
+Start PostgreSQL and persistent Temporal, then seed the reference data:
 
 ```powershell
-docker compose --env-file .env -f deploy/docker-compose.yml up -d
-npm run migrate:temporal
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait
+npm run migrate
 npm run seed
 ```
 
 Set `DATABASE_URL`, `GOOGLE_API_KEY`, and the Temporal connection values in
 `.env`. The analysis model is still the existing Gemini implementation.
 
-Start a local Temporal service using an installed Temporal CLI. Persist the
-development service database so restarting the service preserves workflows:
-
-```powershell
-New-Item -ItemType Directory -Force .temporal
-temporal server start-dev --db-filename .temporal/temporal.db
-```
+Temporal listens at `localhost:7233`; its UI is at `http://localhost:8233`.
+The `temporal-data` named volume persists workflow history separately from
+PostgreSQL's `postgres-data` volume. This is a local development server, not a
+production Temporal cluster. See [deployment.md](deployment.md) for Docker
+verification and [database migrations](../database/migrations/README.md) for upgrades.
 
 In another terminal, start the worker:
 

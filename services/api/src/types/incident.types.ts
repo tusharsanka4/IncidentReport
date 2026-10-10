@@ -5,6 +5,7 @@ export type IncidentStatus =
   | "APPROVED"
   | "REJECTED"
   | "REMEDIATING"
+  | "VERIFYING_HEALTH"
   | "RESOLVED"
   | "ESCALATED"
   | "FAILED";

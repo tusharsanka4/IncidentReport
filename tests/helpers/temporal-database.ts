@@ -74,6 +74,9 @@ export async function createTemporalDatabase() {
   await embedded.exec(initialSql);
   await embedded.exec(lifecycleSql);
   await embedded.exec(lifecycleSql);
+  await embedded.exec(await readFile(
+    resolve("database/migrations/003_database_integrity.sql"), "utf-8"
+  ));
 
   await query(`
     INSERT INTO resources (id, name, resource_type, environment)

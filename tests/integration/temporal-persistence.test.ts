@@ -97,6 +97,12 @@ test("Temporal persistence enforces approval and idempotency", async () => {
     assert.equal(health.healthy, true);
     assert.deepEqual(repeatedHealth, health);
 
+    await activities.recordWorkflowStatusActivity(incidentId, workflowId, "VERIFYING_HEALTH");
+    const verifying = await fixture.query(
+      "SELECT status FROM incidents WHERE id = $1", [incidentId]
+    );
+    assert.equal((verifying.rows[0] as { status: string }).status, "VERIFYING_HEALTH");
+
     await activities.recordWorkflowStatusActivity(incidentId, workflowId, "RESOLVED");
     await activities.recordWorkflowStatusActivity(incidentId, workflowId, "RESOLVED");
 

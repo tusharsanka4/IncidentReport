@@ -2,8 +2,8 @@
 
 ## Local setup
 
-Start PostgreSQL, apply migration `002` if needed, seed resources and changes,
-and start the Temporal development server and worker as described in
+Start the PostgreSQL and Temporal Docker services, run `npm run migrate`, seed
+resources and changes, and start the worker as described in
 [temporal.md](temporal.md). Start the API in another terminal:
 
 ```powershell
@@ -12,7 +12,7 @@ npm run dev
 
 The default base URL is `http://localhost:3000`. The API and worker must use
 the same `DATABASE_URL`, `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, and
-`TEMPORAL_TASK_QUEUE`. Step 9 requires no additional database migration.
+`TEMPORAL_TASK_QUEUE`. The current worker requires migrations through `003`.
 
 ## Endpoints
 

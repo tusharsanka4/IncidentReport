@@ -18,7 +18,13 @@ npm run mcp:inspect
 starts a client interface for manually calling and inspecting MCP tools
 
 docker compose --env-file .env -f deploy/docker-compose.yml up -d
-starts the postgres Container
+starts PostgreSQL and persistent development Temporal (stop any manually running Temporal server first)
+
+npm run migrate
+applies all pending database migrations; use for fresh and existing databases before starting the worker
+
+npm run test:database
+tests migration setup, upgrades, checksums, integrity, and rollback
 
 docker compose --env-file .env -f deploy/docker-compose.yml ps
 checks whether it is runing
