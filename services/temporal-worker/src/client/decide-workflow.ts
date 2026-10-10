@@ -61,7 +61,11 @@ async function decideWorkflow(): Promise<void> {
   });
 }
 
-decideWorkflow().catch((error: unknown) => {
+decideWorkflow().finally(async () => {
+  // Decisions now persist before signaling, so this CLI owns a database pool too.
+  const { database } = await import("../../../shared/src/database.js");
+  await database.end();
+}).catch((error: unknown) => {
   console.error("Failed to send approval decision:", error);
   process.exitCode = 1;
 });

@@ -2,15 +2,15 @@
 
 ## Current Scope
 
-Temporal now owns the complete CLI-driven incident lifecycle: analysis,
+Temporal now owns the complete incident lifecycle through the CLI and HTTP API: analysis,
 approval, simulated remediation, health verification, and a persisted final
 status. LangGraph performs analysis, and all of its operational data access
 continues to go through MCP. The worker's lifecycle activities persist
 approval, remediation, verification, and audit records in PostgreSQL.
 
 The HTTP analysis, approval, rejection, workflow-status, and audit endpoints
-remain a separate next step. The commands below exercise the Temporal loop
-without those endpoints.
+are documented in [api.md](api.md). The commands below exercise the same
+Temporal loop through the CLI.
 
 ## Example Workflow
 
@@ -114,8 +114,9 @@ To reject instead:
 npm run temporal:decide -- INC-1042 REJECTED evaluator@example.com "Manual investigation needed" --wait
 ```
 
-The decision client displays the stored recommendation and signals its
-specific approval request. An approver identity is required. Without
+The status client displays the stored recommendation. The decision client
+persists the human decision and signals its specific approval request.
+An approver identity is required. Without
 `--wait`, the command returns after signal submission; submission does not
 claim that remediation has already finished.
 
@@ -181,7 +182,9 @@ Queries:
 ## Safety, Retries, and Idempotency
 
 All database access and external calls run in activities. Workflow code uses
-only deterministic Temporal operations. Worker restart replays the history
+only deterministic Temporal operations. The API and CLI also persist human
+decisions before signaling, reusing the activities' transactional repository.
+Worker restart replays the history
 and resumes the approval wait.
 
 - Analysis: five-minute start-to-close timeout, twenty-minute overall
@@ -220,6 +223,7 @@ npm run build
 npm run test:ranking
 npm run test:agent
 npm run test:temporal
+npm run test:api
 ```
 
 Temporal tests start an isolated local Temporal server and run the real

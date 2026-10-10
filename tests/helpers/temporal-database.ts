@@ -40,12 +40,25 @@ export async function createTemporalDatabase() {
     };
   }
 
-  const client = {
-    query,
-    release() {}
-  } as unknown as PoolClient;
+  // PGlite uses one SQL session. Serialize borrowed clients so concurrent
+  // HTTP and worker transactions cannot accidentally share a transaction.
+  let transactionQueue = Promise.resolve();
 
-  const connectMock = mock.method(database, "connect", async () => client);
+  const connectMock = mock.method(database, "connect", async () => {
+    const previous = transactionQueue;
+    let releaseTransaction!: () => void;
+
+    transactionQueue = new Promise<void>(resolveTransaction => {
+      releaseTransaction = resolveTransaction;
+    });
+
+    await previous;
+
+    return {
+      query,
+      release: releaseTransaction
+    } as unknown as PoolClient;
+  });
   const queryMock = mock.method(database, "query", query);
 
   const initialSql = await readFile(

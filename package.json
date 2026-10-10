@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:api": "tsx --test tests/integration/approval-api.test.ts",
     "migrate:temporal": "tsx database/migrate-temporal.ts",
     "temporal:status": "tsx services/temporal-worker/src/client/status-workflow.ts",
     "test:temporal": "tsx --test tests/unit/temporal-policy.test.ts tests/integration/temporal-persistence.test.ts tests/integration/temporal-workflow.test.ts",
