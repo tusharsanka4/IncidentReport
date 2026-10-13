@@ -26,6 +26,9 @@ applies all pending database migrations; use for fresh and existing databases be
 npm run test:database
 tests migration setup, upgrades, checksums, integrity, and rollback
 
+npm run test:e2e
+tests the complete HTTP, Temporal, LangGraph, MCP, and real PostgreSQL lifecycle; Docker Desktop must be running, no live model is used
+
 docker compose --env-file .env -f deploy/docker-compose.yml ps
 checks whether it is runing
 

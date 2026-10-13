@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:e2e": "tsx --test tests/end-to-end/incident-lifecycle.test.ts",
     "migrate": "tsx database/migrate.ts",
     "test:database": "tsx --test tests/integration/database-migrations.test.ts",
     "test:docker-temporal": "tsx --test tests/integration/docker-temporal.test.ts",
