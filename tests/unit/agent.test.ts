@@ -176,7 +176,7 @@ test(
 );
 
 test(
-  "retry status routes back to Gemini",
+  "retry status routes back to the analysis model",
   () => {
     const state = createState({
       status: "RETRYING",

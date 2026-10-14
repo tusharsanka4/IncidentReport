@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Follow incident evidence, human approval, and durable remediation in one local demo console.">
+  <title>Manifest · Incident Lab</title>
+  <link rel="stylesheet" href="/demo/styles.css">
+  <script type="module" src="/demo/app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">m.</span><span>Manifest<span class="brand-sub">INCIDENT LAB</span></span></a>
+    <div class="connections"><span id="api-health" class="connection">API checking</span><span id="db-health" class="connection">Database checking</span><a id="temporal-link" href="http://localhost:8233" target="_blank" rel="noopener">Temporal UI ↗</a></div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="section-heading"><h2>Your incidents</h2><button id="refresh-list" class="icon-button" aria-label="Refresh incident list">↻</button></div>
+      <div id="incident-list" class="incident-list"><p class="muted">Loading incidents…</p></div>
+      <section class="create-section">
+        <div class="section-heading"><h2>Create an incident</h2><button id="sample" class="text-button">Fill sample</button></div>
+        <form id="incident-form">
+          <label>Incident ID<input name="incident_id" required maxlength="200" placeholder="INC-1051"></label>
+          <div class="form-pair"><label>Service<input name="service" required value="order-service"></label><label>Environment<select name="environment"><option>production</option><option>staging</option><option>development</option></select></label></div>
+          <label>What happened?<textarea name="symptom" required rows="2" placeholder="Order failures increased"></textarea></label>
+          <label>Detected at (UTC)<input name="detected_at" required type="datetime-local" step="1"></label>
+          <p class="field-hint">The sample uses the seeded deployment’s date, not today.</p>
+          <button class="button primary full" type="submit">＋ Create incident</button>
+        </form>
+      </section>
+      <div class="sidebar-note"><span class="tiny-label">SAFE BY DESIGN</span><p>Real analysis. Human approval.<br>Simulated remediation only.</p></div>
+    </aside>
+    <main>
+      <div class="hero"><div><p class="eyebrow">EVIDENCE → APPROVAL → RECOVERY</p><h1>From incident to resolution.</h1><p class="hero-description">A clear view of what happened, what we know, and what happens next.</p></div><span class="lab-pill">LOCAL DEMO</span></div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="empty-state" class="empty-state"><span class="empty-symbol" aria-hidden="true">◎</span><h2>Start with a signal.</h2><p>Create a sample incident or open one from the sidebar.<br>Every decision leaves a trace you can follow.</p><button id="empty-sample" class="button secondary">Prepare a sample incident</button></div>
+      <div id="workspace" hidden>
+        <section class="incident-strip"><div><span class="tiny-label">ACTIVE INCIDENT</span><h2 id="incident-title"></h2><p id="incident-subtitle"></p></div><div class="status-stack"><span id="workflow-status" class="badge"></span><span id="sync-status" class="muted small">Live updates every 2 seconds</span></div></section>
+        <ol id="progress" class="progress" aria-label="Incident lifecycle"></ol>
+        <div class="workspace-grid">
+          <section class="panel evidence-panel"><div class="panel-heading"><div><span class="step-label">02 / EVIDENCE</span><h2>Changes in the picture</h2></div><span id="candidate-count" class="count">0</span></div><p class="muted small">Ranked by resource relationship, timing, and environment. A candidate is evidence—not proof.</p><div id="candidates"></div></section>
+          <section class="panel agent-panel"><div class="panel-heading"><div><span class="step-label">03 / LANGGRAPH</span><h2>Inside the analysis</h2></div><span id="agent-indicator" class="activity-indicator" aria-hidden="true"></span></div><div id="agent-status"></div><div id="agent-events" class="agent-events"></div><details class="context-details"><summary>Inspect the data fed to the agent</summary><p class="muted small">Actual incident and ranked candidates returned by MCP. No private chain-of-thought or token stream.</p><pre id="agent-context">Waiting for MCP records.</pre></details><div class="start-controls"><label>Simulation outcome<select id="simulation"><option value="SUCCESS">Successful recovery</option><option value="REMEDIATION_FAILURE">Remediation failure</option><option value="UNHEALTHY">Unhealthy verification</option></select></label><button id="analyse" class="button primary">Start analysis →</button></div><p id="start-hint" class="field-hint"></p></section>
+          <section class="panel recommendation-panel"><div class="panel-heading"><div><span class="step-label">04 / RECOMMENDATION</span><h2>What the evidence says</h2></div><span id="confidence" class="badge neutral">Waiting</span></div><div id="analysis"></div><div class="decision-form"><div class="form-pair"><label>Reviewer<input id="reviewer" maxlength="200" placeholder="Your name or email" autocomplete="name"></label><label>Review note<input id="comment" maxlength="2000" placeholder="Why approve or reject?"></label></div><div class="decision-buttons"><button id="approve" class="button primary">✓ Approve remediation</button><button id="reject" class="button danger">Reject recommendation</button></div><p id="approval-hint" class="field-hint"></p></div></section>
+          <section class="panel outcome-panel"><div class="panel-heading"><div><span class="step-label">06 / TEMPORAL</span><h2>Watch the recovery</h2></div><button id="refresh-workflow" class="text-button">Refresh ↻</button></div><div id="outcome"></div><div id="timeline" class="timeline"></div></section>
+        </div>
+        <section class="panel audit-panel"><div class="panel-heading"><div><span class="step-label">THE PAPER TRAIL</span><h2>Every step, recorded</h2></div><span id="audit-count" class="muted small"></span></div><p class="muted small">Confirmed events from MCP, human decisions, and Temporal. Expand an event to inspect its recorded input and output.</p><div id="audit-events" class="audit-events"></div></section>
+      </div>
+      <footer>Manifest · local incident lab<span>Human-in-the-loop. Nothing changes in production.</span></footer>
+    </main>
+  </div>
+</body>
+</html>

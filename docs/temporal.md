@@ -79,8 +79,9 @@ npm run migrate
 npm run seed
 ```
 
-Set `DATABASE_URL`, `GOOGLE_API_KEY`, and the Temporal connection values in
-`.env`. The analysis model is still the existing Gemini implementation.
+Set `DATABASE_URL`, `GROQ_API_KEY`, and the Temporal connection values in
+`.env`. Groq is now the default analysis provider. Set `LLM_PROVIDER=gemini`
+and `GOOGLE_API_KEY` to use Gemini instead; see [model setup](models.md).
 
 Temporal listens at `localhost:7233`; its UI is at `http://localhost:8233`.
 The `temporal-data` named volume persists workflow history separately from

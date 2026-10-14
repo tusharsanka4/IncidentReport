@@ -13,7 +13,7 @@ The agent does not execute remediation.
 The agent uses:
 
 - LangGraph for workflow state, nodes and conditional routing.
-- Gemini for structured incident analysis.
+- Groq (default) or Gemini for structured incident analysis; see [model setup](models.md).
 - MCP for audited access to operational data.
 - PostgreSQL for incidents, changes, analyses and audit events.
 - Zod for runtime validation of model output.
@@ -24,8 +24,8 @@ The agent uses:
 2. Load the incident through the `get_incident` MCP tool.
 3. Load deterministic candidate rankings through the
    `get_ranked_candidate_changes` MCP tool.
-4. Send the incident and ranked evidence to Gemini.
-5. Validate Gemini's structured response.
+4. Send the incident and ranked evidence to the configured model.
+5. Validate the model's structured response.
 6. Retry invalid model output up to two times.
 7. Route weak or unsupported results to manual investigation.
 8. Record the result using the `record_analysis_result` MCP tool.
@@ -41,7 +41,7 @@ flowchart TD
     C -- Yes --> D[Load ranked candidates]
     D --> E{Candidates found?}
     E -- No --> M[Manual investigation]
-    E -- Yes --> F[Gemini analysis]
+    E -- Yes --> F[Model analysis]
     F --> G{Valid output?}
     G -- Retry available --> F
     G -- No retries --> M
@@ -59,7 +59,7 @@ The LangGraph state stores:
 - `incidentId`: ID of the incident being investigated.
 - `incident`: incident information returned by MCP.
 - `candidates`: deterministically ranked candidate changes.
-- `analysis`: validated Gemini analysis.
+- `analysis`: validated model analysis.
 - `status`: current workflow stage.
 - `error`: latest workflow error.
 - `retryCount`: number of failed analysis attempts.
@@ -97,9 +97,9 @@ logic rather than by the language model.
 
 ### Analyse Incident
 
-Sends the incident and ranked candidates to Gemini.
+Sends the incident and ranked candidates to the configured model.
 
-Gemini returns:
+The model returns:
 
 - Probable change ID
 - Confidence score
@@ -108,14 +108,14 @@ Gemini returns:
 - Recommended action
 - Analysis status
 
-Gemini may only select a change that exists in the candidate list.
+The model may only select a change that exists in the candidate list.
 
 ### Manual Investigation
 
 Creates a safe fallback result when:
 
 - No candidate changes exist.
-- Gemini output remains invalid after retries.
+- Model output remains invalid after retries.
 - Confidence is too low.
 - The evidence is inconclusive.
 - The recommendation is unsupported.
@@ -163,7 +163,7 @@ rejected.
 
 ### Structured Output
 
-Gemini output is validated using a Zod schema.
+Model output is validated using a Zod schema.
 
 Invalid responses trigger the retry branch.
 
@@ -186,7 +186,7 @@ Every recommendation must contain:
 ```
 
 The TypeScript application checks these values independently of
-Gemini.
+the model.
 
 The agent never performs a rollback, restart or configuration
 change itself.
@@ -262,7 +262,7 @@ Run focused agent tests:
 npm run test:agent
 ```
 
-The agent unit tests do not call Gemini, MCP or PostgreSQL.
+The agent unit tests do not call a live model, MCP or PostgreSQL.
 
 They test:
 
@@ -332,7 +332,7 @@ LIMIT 15;
 | Incident not found | End with `FAILED` |
 | PostgreSQL or MCP unavailable | End with `FAILED` |
 | No candidate changes | Manual investigation |
-| Invalid Gemini output | Retry |
+| Invalid model output | Retry |
 | Retry limit exceeded | Manual investigation |
 | Low confidence | Manual investigation |
 | Unsupported remediation | Manual investigation |

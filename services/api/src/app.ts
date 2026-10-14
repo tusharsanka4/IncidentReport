@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 
 import { healthRoutes } from "./routes/health.routes.js";
+import { frontendRoutes } from "./routes/frontend.routes.js";
 import { incidentRoutes } from "./routes/incidents.routes.js";
 import { candidateRoutes } from "./routes/candidates.routes.js";
 
@@ -26,6 +27,7 @@ export function buildApplication(
   });
 
   app.register(healthRoutes);
+  app.register(frontendRoutes);
   app.register(incidentRoutes);
   app.register(candidateRoutes);
   app.register(approvalRoutes, { gateway });
