@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Follow incident evidence, human approval, and durable remediation in one local demo console.">
-  <title>Manifest · Incident Lab</title>
+  <title>IncidentReport · Incident Lab</title>
   <link rel="stylesheet" href="/demo/styles.css">
   <script type="module" src="/demo/app.mjs"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">m.</span><span>Manifest<span class="brand-sub">INCIDENT LAB</span></span></a>
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">ir.</span><span>IncidentReport<span class="brand-sub">INCIDENT LAB</span></span></a>
     <div class="connections"><span id="api-health" class="connection">API checking</span><span id="db-health" class="connection">Database checking</span><a id="temporal-link" href="http://localhost:8233" target="_blank" rel="noopener">Temporal UI ↗</a></div>
   </header>
   <div class="layout">
@@ -45,7 +45,7 @@
         </div>
         <section class="panel audit-panel"><div class="panel-heading"><div><span class="step-label">THE PAPER TRAIL</span><h2>Every step, recorded</h2></div><span id="audit-count" class="muted small"></span></div><p class="muted small">Confirmed events from MCP, human decisions, and Temporal. Expand an event to inspect its recorded input and output.</p><div id="audit-events" class="audit-events"></div></section>
       </div>
-      <footer>Manifest · local incident lab<span>Human-in-the-loop. Nothing changes in production.</span></footer>
+      <footer>IncidentReport · local incident lab<span>Human-in-the-loop. Nothing changes in production.</span></footer>
     </main>
   </div>
 </body>

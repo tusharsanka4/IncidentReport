@@ -10,6 +10,8 @@ test("demo assets are served without changing the API routes", async () => {
     const page = await app.inject({ method: "GET", url: "/" });
     assert.equal(page.statusCode, 200);
     assert.match(page.body, /From incident to resolution/);
+    assert.match(page.body, /<title>IncidentReport · Incident Lab<\/title>/);
+    assert.doesNotMatch(page.body, /Manifest/);
     assert.match(page.headers["content-type"]!, /text\/html/);
     assert.match(page.headers["content-security-policy"]!, /script-src 'self'/);
     const ids = new Set([...page.body.matchAll(/id="([^"]+)"/g)].map(match => match[1]));
