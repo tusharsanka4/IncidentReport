@@ -51,8 +51,8 @@ tests/              Unit and integration tests
 ### 1. Install
 
 ```powershell
-git clone <repository-url>
-cd Incident Report
+git clone https://github.com/tusharsanka4/IncidentReport
+cd IncidentReport
 npm install
 Copy-Item .env.example .env
 ```
