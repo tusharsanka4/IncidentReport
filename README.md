@@ -125,13 +125,13 @@ npm run temporal:start -- INC-1042
 Approve the simulated remediation:
 
 ```powershell
-npm run temporal:decide -- INC-1042 APPROVED tushar "Rollback approved"
+npm run temporal:decide -- INC-1042 APPROVED User "Rollback approved"
 ```
 
 Or reject it:
 
 ```powershell
-npm run temporal:decide -- INC-1042 REJECTED tushar "More investigation required"
+npm run temporal:decide -- INC-1042 REJECTED User "More investigation required"
 ```
 
 ## How ranking works
