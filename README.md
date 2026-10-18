@@ -1,6 +1,6 @@
-# Manifest-It 🚨
+# Incident Report 🚨
 
-Manifest-It is an incident-response system that answers:
+Incident Report is an incident-response system that answers:
 
 > **Something broke. What changed right before it broke?**
 
@@ -52,7 +52,7 @@ tests/              Unit and integration tests
 
 ```powershell
 git clone <repository-url>
-cd Manifest-It
+cd Incident Report
 npm install
 Copy-Item .env.example .env
 ```
@@ -148,7 +148,7 @@ Unrelated resource          -30
 
 Gemini interprets this evidence—it does not create the ranking.
 
-If the model fails or the evidence is weak, Manifest-It safely returns:
+If the model fails or the evidence is weak, Incident Report safely returns:
 
 ```text
 MANUAL_INVESTIGATION
