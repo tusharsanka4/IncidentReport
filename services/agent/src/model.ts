@@ -28,7 +28,8 @@ export function createAnalysisModel(
     return createGroqModel(
       apiKey,
       environment.GROQ_MODEL?.trim() || "openai/gpt-oss-120b",
-      fetchImplementation
+      fetchImplementation,
+      environment.GROQ_BASE_URL?.trim() || undefined
     );
   }
 

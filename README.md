@@ -19,7 +19,7 @@ Incident
 - PostgreSQL-backed incident and change tracking
 - Explainable, deterministic candidate ranking
 - MCP tools for controlled data access
-- LangGraph agent using Gemini
+- LangGraph agent using Groq (with an optional Gemini provider)
 - Temporal workflows with human approval
 - Safe manual-investigation fallback
 - Audit logging
@@ -28,7 +28,7 @@ Incident
 
 ## Tech stack
 
-TypeScript · Node.js · Fastify · PostgreSQL · Docker · MCP · LangGraph · Gemini · Temporal · Zod · Vitest
+TypeScript · Node.js · Fastify · PostgreSQL · Docker · MCP · LangGraph · Groq · Temporal · Zod · node:test
 
 ## Project structure
 
@@ -40,7 +40,7 @@ docs/               Project documentation
 sample-data/        Example architecture and incidents
 services/api/       Fastify API
 services/shared/    Database, types and ranking logic
-services/inspector/ MCP server and tools
+services/mcp-server/ MCP server and tools
 services/agent/     LangGraph analysis agent
 services/temporal-worker/ Temporal workflows
 tests/              Unit and integration tests
@@ -48,73 +48,61 @@ tests/              Unit and integration tests
 
 ## Quick start
 
-### 1. Install
+### 1. Configure
 
 ```powershell
 git clone https://github.com/tusharsanka4/IncidentReport
 cd IncidentReport
-npm install
 Copy-Item .env.example .env
 ```
 
-Configure `.env`:
+If `.env` already exists, keep it. Configure its PostgreSQL fields and model key:
 
 ```env
-DATABASE_URL=postgresql://manifest_user:manifest_password@localhost:5432/manifest_db
-GOOGLE_API_KEY=your_google_api_key
-
-TEMPORAL_ADDRESS=localhost:7233
-TEMPORAL_NAMESPACE=default
-TEMPORAL_TASK_QUEUE=manifest-incident-operations
+POSTGRES_USER=manifest_user
+POSTGRES_PASSWORD=choose_a_private_password
+POSTGRES_DB=manifest_db
+LLM_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key
 ```
 
-### 2. Start PostgreSQL
+### 2. Start everything in Docker
+
+Start Docker Desktop. Stop any host API/worker or separate Temporal server first.
+When reusing an existing PostgreSQL volume, keep its original credentials.
 
 ```powershell
-docker compose --env-file .env -f deploy/docker-compose.yml up -d
-npm run seed
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml up -d --build --wait
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml run --rm seed
 ```
 
-### 3. Start the API
-
-```powershell
-npm run dev
-```
-
-Check it:
+Migrations run automatically before the API and worker start. The explicit seed
+command loads reference data, not incidents. Open the frontend at
+[localhost:3000](http://127.0.0.1:3000/) and create a fresh sample incident.
+Check readiness:
 
 ```powershell
 Invoke-RestMethod http://localhost:3000/health
 Invoke-RestMethod http://localhost:3000/ready
 ```
 
-### 4. Run the agent directly
+### 3. Demonstrate the workflow
 
-```powershell
-npm run agent -- INC-1042
-```
+Create incident → inspect candidate changes → start analysis → review evidence →
+approve/reject → inspect the simulated action, health check, and audit trail.
+Temporal UI: [localhost:8233](http://localhost:8233).
+
+See [Docker setup](docs/deployment.md) for logs, configuration, persistence,
+isolated container tests, and the host-development alternative (`npm ci`,
+migrations/seed, `npm run dev`, and `npm run temporal:worker`).
 
 ## Temporal workflow
 
-Start the local Temporal server:
-
-```powershell
-docker run --rm -it `
-  --name manifest-temporal `
-  -p 7233:7233 `
-  -p 8233:8233 `
-  temporalio/temporal:latest `
-  server start-dev `
-  --ip 0.0.0.0
-```
-
-Open the UI at [localhost:8233](http://localhost:8233).
-
-In another terminal, start the worker:
-
-```powershell
-npm run temporal:worker
-```
+The Docker stack already starts persistent development Temporal and the worker.
+For host development, the following CLI commands use the same lifecycle as
+the frontend. Install dependencies with `npm ci` and configure the host
+`DATABASE_URL` and `TEMPORAL_ADDRESS` in `.env` first. Create the incident via
+the API before starting its workflow.
 
 Start an incident workflow:
 
@@ -146,7 +134,7 @@ Deployment change           +10
 Unrelated resource          -30
 ```
 
-Gemini interprets this evidence—it does not create the ranking.
+The configured model interprets this evidence—it does not create the ranking.
 
 If the model fails or the evidence is weak, Incident Report safely returns:
 
@@ -160,7 +148,15 @@ MANUAL_INVESTIGATION
 npm run build
 npm run test:ranking
 npm run test:agent
+npm run test:model
+npm run test:runtime
+npm run test:frontend
+npm run test:e2e
 ```
+
+Compiled-container verification uses `npm run test:containers` after the isolated
+stack and local Postman simulation are started; see [deployment.md](docs/deployment.md).
+It exercises real API/worker/LangGraph/MCP/SQL components without live model calls.
 
 ## Safety
 
@@ -173,7 +169,9 @@ npm run test:agent
 
 ## Status
 
-The core system is complete. Current work focuses on deployment, real application integrations, CI and final shipment preparation.
+The local system is containerized. Public hosting, production Temporal,
+authentication, real remediation integrations, and deployment hardening remain
+separate from this trusted-local demonstration setup.
 
 ---
 

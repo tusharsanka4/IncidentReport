@@ -20,10 +20,12 @@ const GroqOutputSchema = AnalysisOutputSchema.extend({
 export function createGroqModel(
   apiKey: string,
   model: string,
-  fetchImplementation?: typeof fetch
+  fetchImplementation?: typeof fetch,
+  baseUrl?: string
 ) {
   return new ChatGroq({
     apiKey,
+    baseUrl,
     model,
     temperature: 0,
     maxTokens: 2048,

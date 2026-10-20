@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:runtime": "tsc -p tsconfig.build.json",
+    "test:runtime": "tsx --test tests/unit/mcp-process.test.ts tests/unit/container-entrypoint.test.ts",
+    "test:containers": "tsx --test tests/end-to-end/container-stack.test.ts",
     "test:model": "tsx --test tests/unit/model-provider.test.ts",
     "model:check": "tsx services/agent/src/check-model.ts",
     "test:frontend": "tsx --test tests/unit/frontend.test.mjs tests/integration/frontend-assets.test.ts tests/integration/frontend-form.test.mjs",

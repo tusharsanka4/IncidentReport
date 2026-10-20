@@ -1,0 +1,29 @@
+# Merge AFTER base, app, and verify files. Only the isolated project uses these
+# test credentials and the host-side Postman simulation. No real model calls.
+x-test-environment: &test-environment
+  DATABASE_URL: postgresql://manifest_verify:local_verification_only@postgres:5432/manifest_verification
+  POSTGRES_USER: manifest_verify
+  POSTGRES_PASSWORD: local_verification_only
+  POSTGRES_DB: manifest_verification
+  TEMPORAL_NAMESPACE: default
+  TEMPORAL_TASK_QUEUE: container-verification
+
+services:
+  migrate:
+    environment: *test-environment
+  seed:
+    environment: *test-environment
+  api:
+    ports: !override
+      - "127.0.0.1:13000:3000"
+    environment: *test-environment
+  worker:
+    environment:
+      <<: *test-environment
+      LLM_PROVIDER: groq
+      GROQ_API_KEY: container-test-key-not-a-secret
+      GROQ_MODEL: openai/gpt-oss-120b
+      GROQ_BASE_URL: http://host.docker.internal:4900/groq
+      GOOGLE_API_KEY: ""
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

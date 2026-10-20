@@ -1,0 +1,76 @@
+# Merge with docker-compose.yml. The base file still supports host development.
+x-app: &app
+  image: ${APP_IMAGE:-incidentreport-app:local}
+  build:
+    context: ..
+    dockerfile: Dockerfile
+  init: true
+  environment: &runtime-environment
+    NODE_ENV: production
+    DATABASE_URL: ${CONTAINER_DATABASE_URL:-}
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
+    TEMPORAL_ADDRESS: temporal:7233
+    TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
+    TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-manifest-incident-operations}
+
+services:
+  migrate:
+    <<: *app
+    command: ["dist/database/migrate.js"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: ["dist/services/api/src/index.js"]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      <<: *runtime-environment
+      HOST: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "127.0.0.1:${API_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ready',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  worker:
+    <<: *app
+    command: ["dist/services/temporal-worker/src/worker.js"]
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      <<: *runtime-environment
+      LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      GROQ_BASE_URL: ${GROQ_BASE_URL:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+
+  seed:
+    <<: *app
+    profiles: ["tools"]
+    command: ["dist/database/seeds/seed.js"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

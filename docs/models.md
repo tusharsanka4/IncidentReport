@@ -23,6 +23,10 @@ Strict schema represents optional scores/versions as nullable fields; the adapte
 converts nulls to undefined and validates the existing domain schema. The node
 independently verifies candidate IDs and approval requirements.
 
+Leave `GROQ_BASE_URL` blank for normal Groq calls. Local container tests set it
+to the Postman simulation origin plus `/groq`; LangChain adds
+`/openai/v1/chat/completions` itself. Do not include `/openai/v1` in this setting.
+
 Use a model supporting strict schema output, such as `openai/gpt-oss-120b` or
 `openai/gpt-oss-20b`. Changing to an unsupported model can fail; the normal
 manual-investigation fallback still applies. See
@@ -46,6 +50,10 @@ Stop and restart the Temporal worker after changing keys or provider settings:
 ```powershell
 npm run temporal:worker
 ```
+
+For the Docker worker, recreate it with the full-stack `up -d --build --wait`
+command in [deployment.md](deployment.md) instead. A simple container restart
+does not load changed `.env` values.
 
 Create a fresh incident in the frontend and start analysis. Existing stored
 analyses, including quota-error manual-investigation results, remain unchanged.

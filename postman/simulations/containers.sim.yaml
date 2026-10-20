@@ -1,0 +1,5 @@
+simulation: incidentreport-container-verification
+routing: path
+mocks:
+  - routeKey: groq
+    path: ../mocks/groq/config.yaml

@@ -54,6 +54,16 @@ test("Groq normalizes nullable versions for a manual recommendation", async () =
   assert.equal(result.recommended_action.to_version, undefined);
 });
 
+test("the Groq HTTP base URL can point to an isolated local simulation", async () => {
+  const model = createAnalysisModel({
+    GROQ_API_KEY: "test-key", GROQ_BASE_URL: "http://localhost:4900/groq"
+  }, async url => {
+    assert.equal(String(url), "http://localhost:4900/groq/openai/v1/chat/completions");
+    return response(output);
+  });
+  assert.equal((await model.invoke("Test evidence")).probable_change_id, "CHG-201");
+});
+
 test("invalid Groq responses fail the existing domain schema", async () => {
   const model = createAnalysisModel({ GROQ_API_KEY: "test-key" }, async () => response({ ...output, confidence_score: 5 }));
   await assert.rejects(model.invoke("Test evidence"));

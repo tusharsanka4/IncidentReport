@@ -1,5 +1,9 @@
 # Incident Lab frontend
 
+For the all-Docker option, follow [deployment.md](deployment.md). The API image
+already includes this frontend; no additional frontend container is needed.
+The commands below are the host-development alternative.
+
 With PostgreSQL and Temporal running, start the normal API and worker in
 separate terminals:
 

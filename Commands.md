@@ -1,6 +1,27 @@
 npm run dev
 starts the fastify API
 
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml up -d --build --wait
+builds and starts the whole application in Docker, including migrations; stop host API/worker first
+
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml run --rm seed
+loads reference data using the compiled container (run explicitly after startup)
+
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml logs -f api worker
+follows the container application logs; open http://127.0.0.1:3000/ for the frontend
+
+docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml stop
+stops the full stack without deleting persistent data
+
+npm run build:runtime
+compiles application and database code only, as used in the Docker build
+
+npm run test:runtime
+checks source/compiled MCP subprocess selection
+
+npm run test:containers
+tests the compiled stack; first follow the isolated Postman simulation setup in docs/deployment.md
+
 
 npm run build
 runs the typescript compiler

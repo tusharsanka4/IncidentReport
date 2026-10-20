@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import path from "node:path";
+import { mcpProcessArguments } from "./mcp-process.js";
 
 import {
   MultiServerMCPClient
@@ -15,32 +15,13 @@ const environment = Object.fromEntries(
   )
 );
 
-const tsxCliPath = path.join(
-  process.cwd(),
-  "node_modules",
-  "tsx",
-  "dist",
-  "cli.mjs"
-);
-
-const mcpServerPath = path.join(
-  process.cwd(),
-  "services",
-  "mcp-server",
-  "src",
-  "index.ts"
-);
-
 const mcpClient = new MultiServerMCPClient({
   manifest: {
     transport: "stdio",
 
     command: process.execPath,
 
-    args: [
-      tsxCliPath,
-      mcpServerPath
-    ],
+    args: mcpProcessArguments(),
 
     env: environment
   }

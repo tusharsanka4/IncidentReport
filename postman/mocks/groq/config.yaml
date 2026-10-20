@@ -1,0 +1,10 @@
+version: 1
+name: Groq container test stand-in
+slug: groq-container-test
+protocol: http
+port: 4901
+interceptRequests: true
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

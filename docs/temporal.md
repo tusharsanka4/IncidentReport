@@ -66,6 +66,10 @@ records are removed.
 
 ## Running Locally
 
+To run the API, worker, MCP, migrations, and infrastructure entirely in Docker,
+use the full-stack instructions in [deployment.md](deployment.md). Do not also
+start the host worker. The commands below remain the host-development option.
+
 Stop any manually running Temporal dev server before using the normal Compose
 stack: both use port 7233. Docker provides a separate history store; workflows
 from your Windows CLI server are not automatically copied into it. Finish
