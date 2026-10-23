@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incidentreport-config
+data:
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: "3000"
+  POSTGRES_USER: incidentreport
+  POSTGRES_DB: incidentreport
+  TEMPORAL_ADDRESS: temporal:7233
+  TEMPORAL_NAMESPACE: default
+  TEMPORAL_TASK_QUEUE: incidentreport-kubernetes
+  LLM_PROVIDER: groq
+  GROQ_MODEL: openai/gpt-oss-120b
+  GROQ_BASE_URL: ""
+  GEMINI_MODEL: gemini-3.8-flash

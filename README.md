@@ -98,6 +98,10 @@ migrations/seed, `npm run dev`, and `npm run temporal:worker`).
 
 ## Temporal workflow
 
+Kubernetes deployment manifests and the private-demo runbook are available in
+[deploy/kubernetes](deploy/kubernetes/README.md). Kubernetes validation uses
+`npm run test:kubernetes`; see the runbook for cluster prerequisites and limits.
+
 The Docker stack already starts persistent development Temporal and the worker.
 For host development, the following CLI commands use the same lifecycle as
 the frontend. Install dependencies with `npm ci` and configure the host

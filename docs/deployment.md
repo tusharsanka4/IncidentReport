@@ -144,6 +144,8 @@ docker compose --env-file .env --project-name manifest-verification -f deploy/do
 
 ## Complete compiled-container verification
 
+Latest completed run: [23 October 2026 verification evidence](docker-verification.md).
+
 This separate recipe tests the real compiled API, worker, LangGraph, stdio MCP,
 PostgreSQL, and Temporal. Only Groq's HTTP response is simulated by a local
 Postman stand-in. It uses a fake key and consumes no live model quota. The

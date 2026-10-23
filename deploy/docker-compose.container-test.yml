@@ -1,7 +1,8 @@
 # Merge AFTER base, app, and verify files. Only the isolated project uses these
 # test credentials and the host-side Postman simulation. No real model calls.
 x-test-environment: &test-environment
-  DATABASE_URL: postgresql://manifest_verify:local_verification_only@postgres:5432/manifest_verification
+  # Exercise the real entrypoint's URL construction, just like normal Compose.
+  DATABASE_URL: ""
   POSTGRES_USER: manifest_verify
   POSTGRES_PASSWORD: local_verification_only
   POSTGRES_DB: manifest_verification

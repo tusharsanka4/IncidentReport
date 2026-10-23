@@ -1,6 +1,12 @@
 npm run dev
 starts the fastify API
 
+npm.cmd run test:kubernetes
+renders and checks the Kubernetes manifests without deploying anything (requires kubectl)
+
+kubectl kustomize deploy/kubernetes/overlays/demo
+renders the private demonstration stack; follow deploy/kubernetes/README.md before applying to a cluster
+
 docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml up -d --build --wait
 builds and starts the whole application in Docker, including migrations; stop host API/worker first
 

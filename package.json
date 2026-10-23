@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:kubernetes": "node --test tests/unit/kubernetes.test.mjs",
     "build:runtime": "tsc -p tsconfig.build.json",
     "test:runtime": "tsx --test tests/unit/mcp-process.test.ts tests/unit/container-entrypoint.test.ts",
     "test:containers": "tsx --test tests/end-to-end/container-stack.test.ts",
@@ -48,7 +49,8 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",
