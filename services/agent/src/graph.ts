@@ -7,6 +7,8 @@ import {
 import {
   AgentState
 } from "./agent-state.js";
+import type { invokeMcpTool } from "./helpers/mcp-client.js";
+import type { analysisModel } from "./model.js";
 
 import {
   loadIncidentNode
@@ -36,19 +38,22 @@ import {
 
 
 
-export const incidentAnalysisGraph =
-  new StateGraph(AgentState)
+export function createIncidentAnalysisGraph(dependencies: {
+  invokeTool?: typeof invokeMcpTool;
+  model?: Pick<typeof analysisModel, "invoke">;
+} = {}) {
+  return new StateGraph(AgentState)
     .addNode(
       "loadIncident",
-      loadIncidentNode
+      state => loadIncidentNode(state, dependencies.invokeTool)
     )
     .addNode(
       "loadCandidates",
-      loadCandidatesNode
+      state => loadCandidatesNode(state, dependencies.invokeTool)
     )
     .addNode(
       "analyseIncident",
-      analyseIncidentNode
+      state => analyseIncidentNode(state, dependencies.model)
     )
     .addNode(
       "manualInvestigation",
@@ -56,7 +61,7 @@ export const incidentAnalysisGraph =
     )
     .addNode(
       "recordAnalysis",
-      recordAnalysisNode
+      state => recordAnalysisNode(state, dependencies.invokeTool)
     )
 
     .addEdge(
@@ -90,3 +95,6 @@ export const incidentAnalysisGraph =
     )
 
     .compile();
+}
+
+export const incidentAnalysisGraph = createIncidentAnalysisGraph();

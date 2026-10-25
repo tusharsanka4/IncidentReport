@@ -338,3 +338,11 @@ LIMIT 15;
 | Unsupported remediation | Manual investigation |
 | Unsafe execution mode | Reject and retry |
 | Recording failure | End with `FAILED` |
+
+## Reliability update
+
+Attribution now checks explicit evidence support and score ambiguity before
+calling a model. Invalid outputs are schema-validated again at the node boundary;
+returned MCP error envelopes cannot masquerade as incident data. See
+[policy, evaluation, and failure tests](reliability.md). A graph factory supports
+deterministic test dependencies without enabling a fake production model mode.

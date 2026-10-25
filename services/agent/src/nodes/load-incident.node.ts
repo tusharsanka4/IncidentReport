@@ -14,10 +14,11 @@ import {
 } from "../helpers/tool-data.js";
 
 export async function loadIncidentNode(
-  state: IncidentAgentState
+  state: IncidentAgentState,
+  invokeTool: typeof invokeMcpTool = invokeMcpTool
 ): Promise<IncidentAgentUpdate> {
   try {
-    const response = await invokeMcpTool(
+    const response = await invokeTool(
       "get_incident",
       {
         incident_id: state.incidentId

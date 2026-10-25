@@ -6,6 +6,8 @@ import type {
 import {
   analysisModel
 } from "../model.js";
+import { AnalysisOutputSchema } from "../analysis-output.js";
+import { assessAttribution } from "../attribution-policy.js";
 
 import {
   getErrorMessage,
@@ -32,7 +34,8 @@ function getCandidateChangeIds(
 }
 
 export async function analyseIncidentNode(
-  state: IncidentAgentState
+  state: IncidentAgentState,
+  model: Pick<typeof analysisModel, "invoke"> = analysisModel
 ): Promise<IncidentAgentUpdate> {
   if (!state.incident) {
     return {
@@ -50,9 +53,14 @@ export async function analyseIncidentNode(
     };
   }
 
+  const attribution = assessAttribution(state.incident, state.candidates);
+  if (!attribution.changeId) {
+    return { analysis: null, status: "MANUAL_INVESTIGATION", error: attribution.reason };
+  }
+
   try {
     const analysis =
-      await analysisModel.invoke([
+      AnalysisOutputSchema.parse(await model.invoke([
         {
           role: "system",
           content: `
@@ -87,7 +95,7 @@ Rules:
             2
           )
         }
-      ]);
+      ]));
 
     const candidateIds =
       getCandidateChangeIds(
@@ -107,6 +115,11 @@ Rules:
       throw new Error(
         "The model selected a change that was not provided"
       );
+    }
+
+    if (analysis.analysis_status !== "MANUAL_INVESTIGATION" &&
+        analysis.probable_change_id !== attribution.changeId) {
+      throw new Error("The model attribution is not supported by the candidate policy");
     }
 
     /*

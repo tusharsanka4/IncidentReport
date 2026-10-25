@@ -22,6 +22,6 @@ COPY --chown=node:node database/migrations ./database/migrations
 COPY --chown=node:node sample-data ./sample-data
 COPY --chown=node:node deploy/container-entrypoint.cjs ./deploy/container-entrypoint.cjs
 USER node
-EXPOSE 3000
+EXPOSE 3000 3001
 ENTRYPOINT ["node", "deploy/container-entrypoint.cjs"]
 CMD ["dist/services/api/src/index.js"]

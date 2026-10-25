@@ -1,0 +1,8 @@
+[
+  {"name":"clear cause","scores":[85,58],"environments":["production","production"],"expected":"CHG-0"},
+  {"name":"tied candidates","scores":[85,85],"environments":["production","production"],"expected":null},
+  {"name":"conflicting environment","scores":[85,20],"environments":["staging","production"],"expected":null},
+  {"name":"no relevant changes","scores":[],"environments":[],"expected":null},
+  {"name":"near tie","scores":[85,80],"environments":["production","production"],"expected":null},
+  {"name":"weak evidence","scores":[25],"environments":["production"],"expected":null}
+]

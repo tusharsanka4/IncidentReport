@@ -1,0 +1,127 @@
+name: IncidentReport CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Tests supply deterministic doubles, never repository LLM credentials.
+env:
+  CI: "true"
+  GROQ_API_KEY: ""
+  GOOGLE_API_KEY: ""
+
+jobs:
+  checks:
+    name: Build and focused tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install pinned kubectl for offline manifest rendering
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 3 -o kubectl https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl
+          curl --fail --silent --show-error --location --retry 3 -o kubectl.sha256 https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl.sha256
+          printf '%s  kubectl\n' "$(cat kubectl.sha256)" | sha256sum --check
+          chmod +x kubectl
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Compile all TypeScript
+        run: npm run build
+      - name: Compile production runtime
+        run: npm run build:runtime
+      - name: Ranking tests
+        run: npm run test:ranking
+      - name: Agent safety tests
+        run: npm run test:agent
+      - name: Model boundary tests
+        run: npm run test:model
+      - name: Generated edge cases, agent failures, health, audit, and approval delivery recovery
+        run: npm run test:reliability
+      - name: Container entrypoint and MCP launcher tests
+        run: npm run test:runtime
+      - name: Frontend tests
+        run: npm run test:frontend
+      - name: Migration tests
+        run: npm run test:database
+      - name: Kubernetes manifest tests
+        run: npm run test:kubernetes
+      - name: CI configuration tests
+        run: npm run test:ci
+
+  integration:
+    name: Temporal and complete incident lifecycle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_test_only
+          POSTGRES_DB: manifest_verification
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d manifest_verification"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify isolated-test Docker dependency
+        run: docker info
+      - name: Real PostgreSQL migrations including concurrent runners
+        env:
+          TEST_DATABASE_URL: postgresql://ci_user:ci_test_only@127.0.0.1:5432/manifest_verification
+        run: npm run test:database
+      - name: Workflow and persistence tests
+        run: npm run test:temporal
+      - name: Approval HTTP API tests
+        run: npm run test:api
+      - name: Complete HTTP, Temporal, LangGraph, MCP, and PostgreSQL tests
+        run: npm run test:e2e
+
+  image:
+    name: Build application image
+    needs: [checks, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Build without publishing or deployment credentials
+        run: docker build --tag incidentreport-app:ci .

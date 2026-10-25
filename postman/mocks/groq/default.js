@@ -20,11 +20,15 @@ http.createServer((req, res) => {
     }
     const message = body.messages.find(item => item.role === "user");
     const prompt = JSON.parse(message.content);
+    if (prompt.incident.symptom.includes("[model-unavailable]")) {
+      return reply(res, 503, { error: { message: "Simulated provider unavailable", type: "server_error" } });
+    }
     const candidate = prompt.ranked_candidates[0];
     const change = candidate.change;
     const analysis = {
       probable_change_id: change.id,
-      confidence_score: prompt.incident.symptom.includes("[low-confidence]") ? 0.3 : 0.87,
+      confidence_score: prompt.incident.symptom.includes("[invalid-output]") ? 2
+        : prompt.incident.symptom.includes("[low-confidence]") ? 0.3 : 0.87,
       reasoning_summary: "The highest-ranked deployment directly changed the affected service.",
       evidence: candidate.evidence,
       recommended_action: {

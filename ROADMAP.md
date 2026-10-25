@@ -1,5 +1,10 @@
 # Incident Compass — Implementation Roadmap
 
+> Historical proposal: several suggested tools/layouts below were not adopted.
+> For the implemented system and current remaining work, use
+> [architecture](architecture/README.md) and the
+> [completion checklist](docs/completion-checklist.md).
+
 This roadmap turns the requirements in `Manifest-It-project.pdf` and `PROJECT_BRIEF.md` into an executable development sequence.
 
 ## Delivery Strategy

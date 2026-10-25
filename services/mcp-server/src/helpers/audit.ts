@@ -3,6 +3,7 @@ import { database } from "../../../shared/src/database.js";
 import {
   redactSensitiveData
 } from "../../../shared/src/redaction.js";
+import { createToolError } from "./tool-response.js";
 
 interface ToolResult {
   isError?: boolean;
@@ -37,7 +38,10 @@ async function recordToolAudit(
         output,
         status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES (
+        CASE WHEN EXISTS (SELECT 1 FROM incidents WHERE id = $1) THEN $1 ELSE NULL END,
+        $2, $3, $4, $5, $6, $7
+      )
     `,
     [
       incidentId,
@@ -55,25 +59,30 @@ export async function runAuditedTool<
   T extends ToolResult
 >(
   options: AuditedToolOptions<T>
-): Promise<T> {
-  const result = await options.handler();
+): Promise<T | ReturnType<typeof createToolError>> {
+  let result: T | ReturnType<typeof createToolError>;
+  try {
+    result = await options.handler();
+  } catch {
+    // Exception details can contain credentials. Keep the caller/audit safe.
+    result = createToolError("TOOL_EXECUTION_FAILED", "The MCP operation failed");
+  }
   const status =
     result.isError === true ? "FAILED" : "SUCCESS";
 
   try {
     await recordToolAudit(
       options.toolName,
-      status === "SUCCESS"
-        ? options.incidentId ?? null
-        : null,
+      options.incidentId ?? null,
       options.input,
       result,
       status
     );
-  } catch (error) {
-    console.error(
-      `Could not audit ${options.toolName}:`,
-      error
+  } catch {
+    console.error(`Audit write failed for MCP tool ${options.toolName}`);
+    return createToolError(
+      "AUDIT_WRITE_FAILED",
+      "The operation may have completed, but its audit could not be recorded. Retry using the same workflow ID."
     );
   }
 

@@ -15,7 +15,10 @@ export function redactSensitiveData(
       // Ordinary log messages are not JSON documents.
     }
 
-    return value;
+    return value
+      .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s/]*@/gi, match => `${match.split("://")[0]}://[REDACTED]@`)
+      .replace(/\bBearer\s+[^\s"',;]+/gi, "Bearer [REDACTED]")
+      .replace(/\b(password|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^\s"',;]+/gi, "$1=[REDACTED]");
   }
 
   if (Array.isArray(value)) {

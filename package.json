@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:model-http": "tsx --test tests/integration/model-http.test.ts",
+    "eval:attribution": "tsx --test --test-name-pattern=labelled tests/unit/agent-failures.test.ts",
+    "test:reliability": "tsx --test tests/unit/graph-properties.test.ts tests/unit/agent-failures.test.ts tests/unit/health.test.ts tests/integration/reliability.test.ts",
+    "test:ci": "node --test tests/unit/ci.test.mjs",
     "test:kubernetes": "node --test tests/unit/kubernetes.test.mjs",
     "build:runtime": "tsc -p tsconfig.build.json",
     "test:runtime": "tsx --test tests/unit/mcp-process.test.ts tests/unit/container-entrypoint.test.ts",
@@ -48,6 +52,7 @@
     "@temporalio/testing": "^1.24.0",
     "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
+    "fast-check": "^4.10.2",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "yaml": "^2.9.1"

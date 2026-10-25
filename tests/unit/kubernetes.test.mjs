@@ -81,7 +81,7 @@ test("API liveness is independent of database readiness", () => {
   const api = find("Deployment", "incidentreport-api").spec.template.spec.containers[0];
   assert.equal(api.startupProbe.httpGet.path, "/health");
   assert.equal(api.livenessProbe.httpGet.path, "/health");
-  assert.equal(api.readinessProbe.httpGet.path, "/ready");
+  assert.equal(api.readinessProbe.httpGet.path, "/ready/workflow");
   assert.ok(api.readinessProbe.timeoutSeconds);
 });
 
@@ -149,11 +149,12 @@ test("databases retain separate persistent volumes and cannot roll onto shared S
   assert.ok(temporal.terminationGracePeriodSeconds >= 60);
 });
 
-test("worker keeps MCP as its subprocess without pretending to expose HTTP health", () => {
+test("worker keeps MCP as its subprocess and exposes separate health/readiness probes", () => {
   const worker = find("Deployment", "incidentreport-worker").spec.template.spec;
   assert.equal(worker.containers.length, 1);
   assert.deepEqual(worker.containers[0].args, ["dist/services/temporal-worker/src/worker.js"]);
-  assert.equal(worker.containers[0].readinessProbe, undefined);
+  assert.equal(worker.containers[0].readinessProbe.httpGet.path, "/ready");
+  assert.equal(worker.containers[0].livenessProbe.httpGet.path, "/health");
   assert.ok(worker.terminationGracePeriodSeconds >= 60);
   assert.ok(!demo.some(item => /mcp/i.test(item.metadata.name)));
 });

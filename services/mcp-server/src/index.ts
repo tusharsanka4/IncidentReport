@@ -123,12 +123,14 @@ server.registerTool(
   {
     title: "Get Resource Dependencies",
     description:
-      "Finds direct and indirect dependencies of a resource.",
+      "Finds dependencies or reverse dependents of a resource, including indirect paths.",
     inputSchema: {
       resource_id: z
         .string()
         .min(1)
         .describe("The resource ID"),
+
+      direction: z.enum(["dependencies", "dependents"]).default("dependencies"),
 
       max_depth: z
         .number()
@@ -141,11 +143,13 @@ server.registerTool(
   },
   async ({
     resource_id,
-    max_depth
+    max_depth,
+    direction
   }) => {
     const input = {
       resource_id,
-      max_depth
+      max_depth,
+      direction
     };
 
     return runAuditedTool({

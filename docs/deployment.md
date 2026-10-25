@@ -30,9 +30,11 @@ docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-com
 docker compose --env-file .env -f deploy/docker-compose.yml -f deploy/docker-compose.app.yml logs --tail 50 api worker migrate
 ```
 
-`migrate` exiting with code 0 is expected. API readiness checks PostgreSQL;
-it does not prove the worker is polling. Check the worker's `RUNNING` log and
-complete an incident flow. The worker has no separate readiness endpoint yet.
+`migrate` exiting with code 0 is expected. Container API readiness now uses
+`/ready/workflow` (PostgreSQL + Temporal). Worker readiness on internal port
+3001 checks SDK polling state plus both dependencies. `/health` remains
+process-only; the original API `/ready` remains database-only. See
+[reliability checks](reliability.md). A full incident flow is still required.
 
 ### Image and configuration
 
@@ -189,5 +191,5 @@ docker compose --env-file .env --project-name manifest-verification -f deploy/do
 
 These containers are a packaging milestone, not a production certification.
 The Temporal dev server, trusted-local unauthenticated console, simulated
-remediation, worker readiness, secrets, dependency advisories, TLS, backups,
+remediation, readiness behavior under real outages, secrets, dependency reviews, TLS, backups,
 monitoring, and cloud/Kubernetes deployment still need production decisions.

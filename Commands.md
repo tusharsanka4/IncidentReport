@@ -1,6 +1,18 @@
 npm run dev
 starts the fastify API
 
+npm.cmd run test:reliability
+tests generated graph/ranking inputs, agent failure paths, readiness, SQL audit rollback, and approval-signal retry
+
+npm.cmd run eval:attribution
+evaluates the labelled synthetic policy/graph cases; this is not a live model benchmark
+
+npm.cmd run test:model-http
+tests real model HTTP success/failures; start the local Postman simulation as described in docs/reliability.md first
+
+npm.cmd run test:ci
+checks CI triggers, action pins, permissions, test coverage, and no-secret/no-deployment safeguards locally
+
 npm.cmd run test:kubernetes
 renders and checks the Kubernetes manifests without deploying anything (requires kubectl)
 

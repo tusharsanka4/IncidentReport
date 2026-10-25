@@ -41,9 +41,9 @@ services:
       temporal:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ready',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ready/workflow',{signal:AbortSignal.timeout(6000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
-      timeout: 5s
+      timeout: 7s
       retries: 10
       start_period: 15s
 
@@ -52,9 +52,16 @@ services:
     command: ["dist/services/temporal-worker/src/worker.js"]
     restart: unless-stopped
     stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:'+(process.env.WORKER_HEALTH_PORT||'3001')+'/ready',{signal:AbortSignal.timeout(6000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 7s
+      retries: 10
+      start_period: 30s
     environment:
       <<: *runtime-environment
       LLM_PROVIDER: ${LLM_PROVIDER:-groq}
+      WORKER_HEALTH_PORT: ${WORKER_HEALTH_PORT:-3001}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
       GROQ_BASE_URL: ${GROQ_BASE_URL:-}

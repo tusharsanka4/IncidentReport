@@ -331,6 +331,10 @@ export function rankCandidateChanges(
   changes: Change[],
   relationships: ResourceRelationship[]
 ): RankedCandidate[] {
+  if (!Number.isFinite(new Date(incident.detected_at).getTime()) ||
+      changes.some(change => !Number.isFinite(new Date(change.deployed_at).getTime()))) {
+    throw new RangeError("Ranking requires valid incident and change timestamps");
+  }
   return changes
     .map((change) =>
       rankOneChange(
@@ -347,6 +351,6 @@ export function rankCandidateChanges(
       return (
         new Date(second.change.deployed_at).getTime() -
         new Date(first.change.deployed_at).getTime()
-      );
+      ) || (first.change.id < second.change.id ? -1 : first.change.id > second.change.id ? 1 : 0);
     });
 }

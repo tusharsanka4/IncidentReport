@@ -87,3 +87,12 @@ Every scoring decision produces a structured evidence item containing:
 - Points added or deducted
 
 This makes every result auditable and independently testable.
+
+## Reliability update
+
+Equal scores and timestamps now use change ID as the final deterministic
+tie-breaker. Invalid timestamps are rejected rather than propagating NaN values.
+The new generated tests compare cyclic dependency distances with an independent
+shortest-path oracle and verify score bounds and permutation-stable ordering.
+Ranking ties do not establish causal attribution: the separate
+[agent policy](reliability.md) abstains on ambiguous evidence.

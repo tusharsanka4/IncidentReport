@@ -55,6 +55,9 @@ spec:
           image: incidentreport-app
           imagePullPolicy: IfNotPresent
           args: [dist/services/temporal-worker/src/worker.js]
+          ports:
+            - name: health
+              containerPort: 3001
           envFrom:
             - configMapRef:
                 name: incidentreport-config
@@ -82,8 +85,18 @@ spec:
                   name: incidentreport-secrets
                   key: GOOGLE_API_KEY
                   optional: true
-          # No fake HTTP readiness probe: this worker exposes no health server.
-          # Verify polling with logs and a complete incident workflow.
+          startupProbe:
+            httpGet: {path: /health, port: health}
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: {path: /health, port: health}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet: {path: /ready, port: health}
+            periodSeconds: 10
+            timeoutSeconds: 6
           resources:
             requests: {cpu: 250m, memory: 256Mi}
             limits: {cpu: "2", memory: 1Gi}

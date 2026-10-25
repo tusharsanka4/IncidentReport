@@ -186,16 +186,24 @@ export async function recordAnalysisResultTool(
       [input.incident_id, incidentStatus]
     );
 
-    await client.query("COMMIT");
-
     const analysis = result.rows[0];
 
     if (!analysis) {
-      return createToolError(
-        "ANALYSIS_RECORDING_ERROR",
-        "The inserted analysis was not returned"
-      );
+      throw new Error("The inserted analysis was not returned");
     }
+
+    // The mandatory persistence audit commits atomically with the analysis.
+    // The outer MCP call audit is a separate protocol trace, not this guarantee.
+    await client.query(
+      `INSERT INTO audit_events
+        (incident_id, workflow_id, event_key, actor_type, actor_name, action, output, status)
+       VALUES ($1, $2, $3, 'AGENT', 'analysis-persistence', 'ANALYSIS_RECORDED', $4::jsonb, 'SUCCESS')
+       ON CONFLICT (event_key) DO NOTHING`,
+      [input.incident_id, input.workflow_id ?? null,
+        `${input.workflow_id ?? `analysis-${analysis.id}`}:analysis-recorded`,
+        JSON.stringify({ analysis_id: analysis.id })]
+    );
+    await client.query("COMMIT");
 
     return createToolResponse({
       analysis_id: analysis.id,

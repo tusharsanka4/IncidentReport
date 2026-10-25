@@ -153,15 +153,15 @@ the final state/audit trail. This is the runtime acceptance check, not just
 
 ## Probes, shutdown, and diagnostics
 
-API startup/liveness use `/health` (no dependency checks). Readiness uses the
-existing `/ready` (PostgreSQL only, not Temporal or worker polling). PostgreSQL
+API startup/liveness use `/health` (no dependency checks). Readiness uses
+`/ready/workflow` (PostgreSQL + Temporal). The original `/ready` stays database-only. PostgreSQL
 and Temporal have startup/readiness checks. Neither gains a dependency-based
 liveness probe that would restart it repeatedly during an outage.
 
-The worker exposes no health server yet. We deliberately do not use an invented
-HTTP endpoint or a TCP connection to Temporal as proof of worker readiness.
-Kubernetes considers a running worker ready; check its `RUNNING` logs and an
-actual workflow. Polling-aware worker readiness remains reliability work.
+The worker now exposes an internal health server on port 3001. `/health` is
+process-only; `/ready` checks SDK run/poller state, PostgreSQL, and bounded
+Temporal gRPC health. Kubernetes probes use those separate paths. This is not
+proof that a task/model call will succeed; verify an actual incident workflow.
 
 All containers have resource requests/limits, non-root IDs, dropped Linux
 capabilities, no privilege escalation, a read-only root filesystem, and no
@@ -214,6 +214,11 @@ Implementation checks completed on 23 October 2026:
   Docker engine/status requests stalled. No cluster was created or changed;
   server dry-run, pod startup, storage permissions, and the Kubernetes end-to-end
   workflow remain unverified. Docker was not globally restarted.
+
+The 25 October reliability update adds real worker/workflow readiness probes;
+rerun image/cluster verification before deployment. The 23 October schema check
+above predates those changes; subsequent structural tests are tracked in
+`docs/completion-checklist.md`.
 
 This evidence establishes valid, tested deployment configuration, not a live
 Kubernetes rollout. The earlier Docker lifecycle verification remains separate.

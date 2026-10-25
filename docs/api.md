@@ -153,3 +153,24 @@ Gemini. They cover input validation, missing records, early decisions,
 concurrent conflicts, failed signal delivery and retry, duplicate starts and
 decisions, approval, rejection, unhealthy verification, and completed reads
 after worker shutdown. No changes are made to your development database.
+## Reliability endpoint addition
+
+`GET /ready/workflow` complements the existing `/health` and `/ready`; it does
+not change incident/approval request shapes. It returns HTTP 200 only when the
+database query and a bounded Temporal gRPC capability call both succeed:
+
+```json
+{"status":"ready","database":"connected","temporal":"connected"}
+```
+
+An unavailable dependency returns HTTP 503, for example:
+
+```json
+{"status":"not_ready","database":"connected","temporal":"disconnected"}
+```
+
+`/health` is process-only; `/ready` remains database-only for compatibility.
+These endpoints are read-only and do not start workflows or prove worker/model
+availability. Database connection/query and Temporal calls are bounded. Internal
+error messages and credentials are not included. Worker health is a separate
+internal port 3001; see [reliability contracts](reliability.md).

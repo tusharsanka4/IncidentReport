@@ -148,6 +148,10 @@ MANUAL_INVESTIGATION
 
 ## Tests
 
+GitHub Actions is configured in `.github/workflows/ci.yml` for pushes and pull
+requests. See [CI setup](docs/ci.md) for gates and how to confirm a hosted run.
+Cloud hosting remains a separate [deployment decision](docs/cloud-deployment.md).
+
 ```powershell
 npm run build
 npm run test:ranking
@@ -172,6 +176,11 @@ It exercises real API/worker/LangGraph/MCP/SQL components without live model cal
 - Important operations are audited.
 
 ## Status
+
+See the [current completion checklist](docs/completion-checklist.md) for verified
+improvements, remaining deployment work, and the distinction between a passing
+local test and a hosted end-to-end demonstration. Architecture diagrams live in
+[architecture/README.md](architecture/README.md).
 
 The local system is containerized. Public hosting, production Temporal,
 authentication, real remediation integrations, and deployment hardening remain

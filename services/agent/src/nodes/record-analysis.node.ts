@@ -14,7 +14,8 @@ import {
 } from "../helpers/tool-data.js";
 
 export async function recordAnalysisNode(
-  state: IncidentAgentState
+  state: IncidentAgentState,
+  invokeTool: typeof invokeMcpTool = invokeMcpTool
 ): Promise<IncidentAgentUpdate> {
   if (!state.analysis) {
     return {
@@ -25,7 +26,7 @@ export async function recordAnalysisNode(
   }
 
   try {
-    const response = await invokeMcpTool(
+    const response = await invokeTool(
       "record_analysis_result",
       {
         incident_id:
