@@ -26,6 +26,7 @@ import {
 } from "../../../temporal-worker/src/client/decision-error.js";
 
 import { ApiError } from "../errors/api-error.js";
+import { temporalConnectionOptions } from "../../../shared/src/temporal-connection.js";
 
 import type {
   WorkflowGateway,
@@ -38,7 +39,7 @@ export class TemporalGateway implements WorkflowGateway {
 
   private async connect(): Promise<Connection> {
     const pending = this.connection ?? Connection.connect({
-      address: process.env.TEMPORAL_ADDRESS ?? "localhost:7233",
+      ...temporalConnectionOptions(),
       connectTimeout: "5 seconds"
     });
 

@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { protectDemo } from "./demo-access.js";
 
 import { healthRoutes } from "./routes/health.routes.js";
 import { frontendRoutes } from "./routes/frontend.routes.js";
@@ -25,6 +26,8 @@ export function buildApplication(
       customOptions: { coerceTypes: false, removeAdditional: false }
     }
   });
+
+  protectDemo(app);
 
   app.register(healthRoutes);
   app.register(frontendRoutes);

@@ -3,6 +3,20 @@
 This is the current implementation checklist. `ROADMAP.md` is the historical
 proposal; it is not an accurate inventory of today's tools or completion.
 
+## Vercel update — 27 October 2026
+
+- Provider selected: Vercel, private evaluator demo, strictly zero spending.
+- Added a serverless Fastify adapter, frontend asset packaging, fail-closed shared
+  demo credentials, smaller serverless database pools, and TLS/API-key Temporal
+  connections for client, worker, CLI, and readiness checks.
+- An optional Vercel daemon worker configuration is supplied, not enabled.
+- The user reports completing the prior Docker verification. Hosted Vercel build,
+  runtime, database/Temporal reachability, and the hosted lifecycle remain unverified.
+- A reachable PostgreSQL database and durable authenticated Temporal endpoint
+  are still required. Zero-cost external hosting has not been established.
+- Follow [the Vercel deployment steps](vercel.md). The older cloud-provider choices
+  below are historical; no DigitalOcean provisioning or spending is authorized.
+
 ## Completed repository work
 
 - [x] API/frontend, Temporal lifecycle, human decisions, simulated remediation,

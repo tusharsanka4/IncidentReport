@@ -11,6 +11,7 @@ coverage/
 backups/
 *.tsbuildinfo
 .temporal/
+.vercel/
 
 # Local environment configuration (keep the template tracked)
 .env

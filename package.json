@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test:vercel": "tsx --test tests/unit/vercel.test.ts",
     "test:model-http": "tsx --test tests/integration/model-http.test.ts",
     "eval:attribution": "tsx --test --test-name-pattern=labelled tests/unit/agent-failures.test.ts",
     "test:reliability": "tsx --test tests/unit/graph-properties.test.ts tests/unit/agent-failures.test.ts tests/unit/health.test.ts tests/integration/reliability.test.ts",

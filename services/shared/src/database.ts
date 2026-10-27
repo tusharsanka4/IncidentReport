@@ -9,6 +9,8 @@ if (!process.env.DATABASE_URL) {
 
 export const database = new Pool({
   connectionString: process.env.DATABASE_URL,
+  // Each serverless instance has its own pool; use a provider's pooled URL.
+  max: process.env.VERCEL === "1" ? 2 : 10,
   connectionTimeoutMillis: 3000,
   query_timeout: 10000,
   idleTimeoutMillis: 30000

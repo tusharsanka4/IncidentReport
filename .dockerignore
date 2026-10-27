@@ -11,6 +11,7 @@ dist
 coverage
 backups
 .temporal
+.vercel
 venv
 .venv
 __pycache__

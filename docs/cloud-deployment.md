@@ -1,5 +1,11 @@
 # Cloud deployment: decisions and acceptance checklist
 
+Vercel packaging is now available; follow [the Vercel runbook](vercel.md).
+The budget is strictly zero. No paid infrastructure or trial is authorized.
+External PostgreSQL and durable Temporal hosting remain prerequisites for a
+complete Vercel deployment. The Vercel demo has a shared-password access gate;
+per-user approval identity is still a separate feature.
+
 Cloud hosting is not complete until a real environment is deployed and its
 hosted incident lifecycle is verified. The repository currently supplies a
 Docker image, Kubernetes manifests, and CI checks; these alone are not hosting.
@@ -13,13 +19,13 @@ Docker image, Kubernetes manifests, and CI checks; these alone are not hosting.
   registry/storage, networking/load balancers, and optional managed services.
 - Provider account access and image-registry ownership. Use local/provider
   authentication or a secret store; never put tokens in source files or chat.
-- Domain and HTTPS/access-control approach. The current console and approval
-  endpoints trust caller-supplied identities. Publishing the API unprotected
-  would expose incident data and model-triggering operations.
+- Domain and HTTPS/access-control approach. The Vercel shared-password gate
+  protects access; approval attribution still trusts caller-supplied identities.
+  Local Docker deployments remain open unless demo credentials are configured.
 - PostgreSQL/Temporal hosting and backup plan. The current Temporal SQLite dev
   server is suitable for a private demo, not a highly available production
-  cluster. Temporal Cloud requires TLS/auth support not configured in the
-  application's current client/worker setup.
+  cluster. Client, worker, and readiness connections now support public-CA TLS
+  and API keys; endpoint provisioning and hosted verification remain outstanding.
 
 No paid resources, registry pushes, DNS records, public endpoints, or cloud
 credentials are created by the new CI workflow. CI intentionally does not

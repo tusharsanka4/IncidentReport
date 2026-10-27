@@ -11,6 +11,7 @@ import { database, checkDatabaseHealth } from "../../shared/src/database.js";
 import { closeMcpClient } from "../../agent/src/helpers/mcp-client.js";
 import { checkTemporalHealth } from "../../shared/src/temporal-health.js";
 import { createWorkerHealthServer } from "./health.js";
+import { temporalConnectionOptions } from "../../shared/src/temporal-connection.js";
 
 async function startWorker(): Promise<void> {
   const temporalAddress =
@@ -29,7 +30,7 @@ async function startWorker(): Promise<void> {
 
   const connection =
     await NativeConnection.connect({
-      address: temporalAddress
+      ...temporalConnectionOptions()
     });
 
   console.log(

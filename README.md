@@ -48,6 +48,10 @@ tests/              Unit and integration tests
 
 ## Quick start
 
+For Vercel packaging, private access, external-service requirements, and deployment
+steps, see [the Vercel guide](docs/vercel.md). Vercel does not host this project's
+PostgreSQL or durable Temporal server automatically.
+
 ### 1. Configure
 
 ```powershell

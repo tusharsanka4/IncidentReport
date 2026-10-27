@@ -1,0 +1,10 @@
+{
+  "worker": {
+    "root": ".",
+    "entrypoint": "Dockerfile",
+    "command": ["node", "deploy/container-entrypoint.cjs", "dist/services/temporal-worker/src/worker.js"],
+    "instances": { "iad1": 1 },
+    "resources": { "requests": { "memory": "2Gi" } },
+    "terminationGracePeriodSeconds": 60
+  }
+}

@@ -62,6 +62,8 @@ jobs:
         run: npm run test:runtime
       - name: Frontend tests
         run: npm run test:frontend
+      - name: Vercel adapter and private access tests
+        run: npm run test:vercel
       - name: Migration tests
         run: npm run test:database
       - name: Kubernetes manifest tests

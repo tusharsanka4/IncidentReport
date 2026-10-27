@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { temporalConnectionOptions } from "../../../shared/src/temporal-connection.js";
 
 import {
   Client,
@@ -15,7 +16,7 @@ export async function withWorkflowClient<T>(
   handler: (client: Client) => Promise<T>
 ): Promise<T> {
   const connection = await Connection.connect({
-    address: process.env.TEMPORAL_ADDRESS ?? "localhost:7233"
+    ...temporalConnectionOptions()
   });
 
   const client = new Client({

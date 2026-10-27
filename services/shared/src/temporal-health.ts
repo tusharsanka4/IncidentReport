@@ -1,9 +1,10 @@
 import { Connection } from "@temporalio/client";
+import { temporalConnectionOptions } from "./temporal-connection.js";
 
 /** A bounded gRPC check, not just an open TCP port or a worker-ready claim. */
 export async function checkTemporalHealth(): Promise<void> {
   const connection = await Connection.connect({
-    address: process.env.TEMPORAL_ADDRESS ?? "localhost:7233",
+    ...temporalConnectionOptions(),
     connectTimeout: "2 seconds"
   });
   try {
